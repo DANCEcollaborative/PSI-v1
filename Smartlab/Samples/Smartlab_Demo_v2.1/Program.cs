@@ -24,7 +24,9 @@
         private const string TopicToBazaar = "PSI_Bazaar_Text";
         private const string TopicToPython = "PSI_Python_Image";
         private const string TopicToNVBG = "PSI_NVBG_Location";
+        private const string TopicToVHText = "PSI_VHT_Text";
         private const string TopicFromPython = "Python_PSI_Location";
+        private const string TopicFromBazaar = "Bazaar_PSI_Text";
 
         private const int SendingImageWidth = 360;
 
@@ -103,6 +105,7 @@
             }
             manager = new CommunicationManager();
             manager.subscribe(TopicFromPython, ProcessLocation);
+            manager.subscribe(TopicFromBazaar, ProcessText);
             return true;
         }
 
@@ -115,6 +118,15 @@
             {
                 Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
                 manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
+            }
+        }
+
+        private static void ProcessText(String s)
+        {
+            if (s != null)
+            {
+                Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
+                manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{s}");
             }
         }
 
@@ -178,7 +190,7 @@
         private static void SendDialogToBazaar(IStreamingSpeechRecognitionResult result, Envelope envelope)
         {
             Console.WriteLine($"Send text message to Bazaar: {result.Text}");
-            manager.SendText(TopicToBazaar, $"multimodal:false;%;identity:someone;%;text:{result.Text}");
+            manager.SendText(TopicToBazaar, result.Text);
         }
 
         private static void Pipeline_PipelineCompleted(object sender, PipelineCompletedEventArgs e)
