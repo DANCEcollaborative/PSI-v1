@@ -1,0 +1,58 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="CheckVariable">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <ApplicationIcon />
+    <OutputType>Exe</OutputType>
+    <StartupObject>Test.Psi.Speech.Windows.ConsoleMain</StartupObject>
+    <RunAnalyzersDuringBuild>false</RunAnalyzersDuringBuild>
+    <RunAnalyzersDuringLiveAnalysis>false</RunAnalyzersDuringLiveAnalysis>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\Audio\Microsoft.Psi.Audio\Microsoft.Psi.Audio.csproj" />
+    <ProjectReference Include="..\..\Common\Test.Psi.Common\Test.Psi.Common.csproj" />
+    <ProjectReference Include="..\..\Integrations\MicrosoftSpeech\Microsoft.Psi.MicrosoftSpeech.Windows\Microsoft.Psi.MicrosoftSpeech.Windows.csproj" />
+    <ProjectReference Include="..\..\Runtime\Microsoft.Psi\Microsoft.Psi.csproj" />
+    <ProjectReference Include="..\Microsoft.Psi.Speech.Windows\Microsoft.Psi.Speech.Windows.csproj" />
+    <ProjectReference Include="..\Microsoft.Psi.Speech\Microsoft.Psi.Speech.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="TestFiles\16kHz1chan.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestFiles\44kHz2chan.wav">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="MSTest.TestAdapter" Version="2.1.0" />
+    <PackageReference Include="MSTest.TestFramework" Version="2.1.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Speech" />
+  </ItemGroup>
+  <Target Name="CheckVariable">
+    <Warning Text="In order to build this sample you must define the environment variable MsSpeechSdkDir to point to your Microsoft.Speech installation" ContinueOnError="WarnAndContinue" Condition="'$(MsSpeechSdkDir)'==''" />
+    <CreateProperty Value="" Condition="'$(MsSpeechSdkDir)'==''">
+      <Output TaskParameter="Value" PropertyName="BuildDependsOn" />
+    </CreateProperty>
+  </Target>
+</Project>

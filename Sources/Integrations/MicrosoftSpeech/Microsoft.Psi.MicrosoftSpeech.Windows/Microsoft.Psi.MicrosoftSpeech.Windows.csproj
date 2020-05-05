@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk" InitialTargets="CheckVariable">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>Provides Windows-specific components for the using the Microsoft.Speech recognition platform.</Description>
+    <RootNamespace>Microsoft.Psi.MicrosoftSpeech</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>bin\Release\net472\Microsoft.Psi.MicrosoftSpeech.Windows.xml</DocumentationFile>
+    <CodeAnalysisRuleSet>..\..\..\..\Build\Microsoft.Psi.ruleset</CodeAnalysisRuleSet>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>bin\Debug\net472\Microsoft.Psi.MicrosoftSpeech.Windows.xml</DocumentationFile>
+    <CodeAnalysisRuleSet>..\..\..\..\Build\Microsoft.Psi.ruleset</CodeAnalysisRuleSet>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Audio\Microsoft.Psi.Audio\Microsoft.Psi.Audio.csproj" />
+    <ProjectReference Include="..\..\..\Language\Microsoft.Psi.Language\Microsoft.Psi.Language.csproj" />
+    <ProjectReference Include="..\..\..\Runtime\Microsoft.Psi\Microsoft.Psi.csproj" />
+    <ProjectReference Include="..\..\..\Speech\Microsoft.Psi.Speech\Microsoft.Psi.Speech.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.Speech">
+      <HintPath>$(MsSpeechSdkDir)\Assembly\Microsoft.Speech.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <Target Name="CheckVariable">
+    <Warning Text="In order to build this sample you must define the environment variable MsSpeechSdkDir to point to your Microsoft.Speech installation" ContinueOnError="WarnAndContinue" Condition="'$(MsSpeechSdkDir)'==''" />
+    <CreateProperty Value="" Condition="'$(MsSpeechSdkDir)'==''">
+      <Output TaskParameter="Value" PropertyName="BuildDependsOn" />
+    </CreateProperty>
+    <CreateProperty Value="false" Condition="'$(MsSpeechSdkDir)'==''">
+      <Output TaskParameter="Value" PropertyName="GeneratePackageOnBuild" />
+    </CreateProperty>
+    <CreateProperty Value="" Condition="'$(MsSpeechSdkDir)'==''">
+      <Output TaskParameter="Value" PropertyName="GenerateNuspecDependsOn" />
+    </CreateProperty>
+  </Target>
+</Project>
