@@ -6,6 +6,7 @@
     using System.Linq;
     using System.Text;
     using System.Threading.Tasks;
+    using Microsoft.Kinect;
     using Microsoft.Psi;
     using Microsoft.Psi.Audio;
     using Microsoft.Psi.CognitiveServices;
@@ -13,13 +14,12 @@
     using Microsoft.Psi.Imaging;
     using Microsoft.Psi.Media;
     using Microsoft.Psi.Speech;
+    using Microsoft.Psi.Kinect;
+    using Apache.NMS;
 
     class Program
     {
-        private const string AppName = "SmartLab Project - Demo v2.1";
-
-        private const string LogName = @"WebcamWithAudioSample";
-        private const string LogPath = @"C:\\Users\thisiswys\Videos\WebcamWithAudioSample.0005";
+        private const string AppName = "SmartLab Project - Demo v2.2 (for SigDial Demo)";
 
         private const string TopicToBazaar = "PSI_Bazaar_Text";
         private const string TopicToPython = "PSI_Python_Image";
@@ -27,8 +27,11 @@
         private const string TopicToVHText = "PSI_VHT_Text";
         private const string TopicFromPython = "Python_PSI_Location";
         private const string TopicFromBazaar = "Bazaar_PSI_Text";
+        private const string TopicFromPython_QueryKinect = "Python_PSI_QueryKinect";
+        private const string TopicToPython_AnswerKinect = "PSI_Python_AnswerKinect";
 
         private const int SendingImageWidth = 360;
+        private const int KinectImageWidth = 1920;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -39,6 +42,9 @@
         public static readonly object SendToPythonLock = new object();
 
         public static DateTime LastLocSendTime = new DateTime();
+
+        public static SortedList<DateTime, CameraSpacePoint[]> KinectMappingBuffer;
+
 
         static void Main(string[] args)
         {
@@ -70,7 +76,7 @@
             }
             else
             {
-                
+
                 Console.ReadLine();
             }
         }
@@ -108,7 +114,68 @@
             manager = new CommunicationManager();
             manager.subscribe(TopicFromPython, ProcessLocation);
             manager.subscribe(TopicFromBazaar, ProcessText);
+            manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
+            KinectMappingBuffer = new SortedList<DateTime, CameraSpacePoint[]>();
             return true;
+        }
+
+        private static void HandleKinectQuery(byte[] b)
+        {
+            string text = Encoding.ASCII.GetString(b);
+            string[] infos = text.Split(';');
+            int ticks = int.Parse(infos[0]);
+            // x should from left to right and y should from up to down
+            double x = double.Parse(infos[1]);
+            double y = double.Parse(infos[2]);
+            if (KinectMappingBuffer.Count == 0)
+            {
+                manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
+                return;
+            }
+
+            // Binary search for the nearest Mapper
+            int left = 0;
+            int right = KinectMappingBuffer.Count;
+            while (right - left > 1)
+            {
+                int mid = (right + left) / 2;
+                if (KinectMappingBuffer.ElementAt(mid).Key.Ticks <= ticks)
+                {
+                    left = mid;
+                }
+                else
+                {
+                    right = mid;
+                }
+            }
+
+            long diff1 = Math.Abs(KinectMappingBuffer.ElementAt(left).Key.Ticks - ticks);
+            long diff2;
+            if (left + 1 < KinectMappingBuffer.Count)
+            {
+                diff2 = Math.Abs(KinectMappingBuffer.ElementAt(left).Key.Ticks - ticks);
+            }
+            else
+            {
+                diff2 = long.MaxValue;
+            }
+
+            CameraSpacePoint[] mapper;
+            if (diff1 < diff2)
+            {
+                mapper = KinectMappingBuffer.ElementAt(left).Value;
+            }
+            else
+            {
+                mapper = KinectMappingBuffer.ElementAt(left + 1).Value;
+            }
+
+            // Convert to original image size:
+            float scale = ((float)KinectImageWidth) / SendingImageWidth;
+            int real_x = (int)(x * scale);
+            int real_y = (int)(y * scale);
+            CameraSpacePoint p = mapper[real_y * KinectImageWidth + real_x];
+            manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{p.X};{p.Y};{p.Z}");
         }
 
         private static void ProcessLocation(byte[] b)
@@ -140,7 +207,7 @@
             }
         }
 
-        public static void RunDemo(bool AudioOnly=false)
+        public static void RunDemo(bool AudioOnly = false)
         {
             using (Pipeline pipeline = Pipeline.Create())
             {
@@ -153,11 +220,25 @@
                 // var video = store.OpenStream<Shared<EncodedImage>>("Image");
                 if (!AudioOnly)
                 {
-                    MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    var kinectSensorConfig = new KinectSensorConfiguration
+                    {
+                        OutputColor = true,
+                        OutputDepth = true,
+                        OutputRGBD = true,
+                        OutputColorToCameraMapping = true,
+                        OutputBodies = false,
+                    };
+                    var kinectSensor = new Microsoft.Psi.Kinect.KinectSensor(pipeline, kinectSensorConfig);
+                    // MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    // var kinectRGBD = kinectSensor.RGBDImage;
+                    var kinectColor = kinectSensor.ColorImage;
+                    var kinectMapping = kinectSensor.ColorToCameraMapper;
+                    kinectMapping.Do(addNewMapper);
 
+                    // var kinectDepth = kinectSensor.DepthImage;
                     // var decoded = video.Out.Decode().Out;
                     ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    webcam.Out.Do(helper.SendImage);
+                    kinectColor.Do(helper.SendImage);
                     // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                 }
 
@@ -191,14 +272,24 @@
                 pipeline.RunAsync();
                 if (AudioOnly)
                 {
-                    Console.WriteLine("Running Smart Lab Project Demo v2.1 - Audio Only.");
+                    Console.WriteLine("Running Smart Lab Project Demo v2.2 - Audio Only.");
                 }
                 else
                 {
-                    Console.WriteLine("Running Smart Lab Project Demo v2.0");
+                    Console.WriteLine("Running Smart Lab Project Demo v2.2");
                 }
                 Console.WriteLine("Press any key to exit...");
                 Console.ReadKey(true);
+            }
+        }
+
+        private static void addNewMapper(CameraSpacePoint[] mapper, Envelope envelope)
+        {
+            var time = envelope.OriginatingTime;
+            KinectMappingBuffer.Add(time, mapper);
+            while (DateTime.Now.Subtract(KinectMappingBuffer.First().Key).TotalSeconds > 10)
+            {
+                KinectMappingBuffer.RemoveAt(0);
             }
         }
 

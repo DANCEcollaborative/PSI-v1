@@ -219,6 +219,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libffmpeghelper", "Smartlab
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smartlab_Demo_v2_1", "Smartlab\Samples\Smartlab_Demo_v2.1\Smartlab_Demo_v2_1.csproj", "{821E34CA-5E98-4AC6-853E-024FF85633A4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SigdialDemo", "Smartlab\Samples\SigdialDemo\SigdialDemo.csproj", "{04282937-8186-4C5E-9CA0-6E5AB15662B5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -979,6 +981,18 @@ Global
 		{821E34CA-5E98-4AC6-853E-024FF85633A4}.Release|x64.ActiveCfg = Release|x64
 		{821E34CA-5E98-4AC6-853E-024FF85633A4}.Release|x64.Build.0 = Release|x64
 		{821E34CA-5E98-4AC6-853E-024FF85633A4}.Release|x86.ActiveCfg = Release|x64
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Debug|x64.ActiveCfg = Debug|x64
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Debug|x64.Build.0 = Debug|x64
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Debug|x86.Build.0 = Debug|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Release|x64.ActiveCfg = Release|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Release|x64.Build.0 = Release|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Release|x86.ActiveCfg = Release|Any CPU
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1074,6 +1088,7 @@ Global
 		{F8DF0313-FF3B-4AD4-BFAF-D7F1503F299F} = {999858D7-9208-40A5-A4D2-1E983F34F7A2}
 		{3C96BD24-3212-4CD8-86E3-63D1E3E38155} = {DA263218-2FB5-4EA7-B2FB-72D7CF83099E}
 		{821E34CA-5E98-4AC6-853E-024FF85633A4} = {999858D7-9208-40A5-A4D2-1E983F34F7A2}
+		{04282937-8186-4C5E-9CA0-6E5AB15662B5} = {999858D7-9208-40A5-A4D2-1E983F34F7A2}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EAF15EE9-DCC5-411B-A9E5-7C2F3D132331}
