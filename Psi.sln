@@ -218,8 +218,16 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "libffmpeghelper", "Smartlab\Sources\Media\libffmpeghelper\libffmpeghelper.vcxproj", "{3C96BD24-3212-4CD8-86E3-63D1E3E38155}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smartlab_Demo_v2_1", "Smartlab\Samples\Smartlab_Demo_v2.1\Smartlab_Demo_v2_1.csproj", "{821E34CA-5E98-4AC6-853E-024FF85633A4}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E} = {FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smartlab_Demo_v2_1_work", "..\multimodal\PSI\Smartlab\Samples\Smartlab_Demo_v2.1_work\Smartlab_Demo_v2_1_work.csproj", "{0D8FB315-111A-4983-9469-446A3F04061A}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Smartlab_Demo_v2_1_work", "Smartlab\Samples\Smartlab_Demo_v2.1_work\Smartlab_Demo_v2_1_work.csproj", "{0D8FB315-111A-4983-9469-446A3F04061A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E} = {FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CMU.Smartlab.Identity", "Smartlab\Sources\CMU.Smartlab.Identity\CMU.Smartlab.Identity.csproj", "{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -989,6 +997,18 @@ Global
 		{0D8FB315-111A-4983-9469-446A3F04061A}.Release|x64.ActiveCfg = Release|x64
 		{0D8FB315-111A-4983-9469-446A3F04061A}.Release|x64.Build.0 = Release|x64
 		{0D8FB315-111A-4983-9469-446A3F04061A}.Release|x86.ActiveCfg = Release|x64
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Debug|x64.Build.0 = Debug|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Debug|x86.Build.0 = Debug|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Release|x64.ActiveCfg = Release|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Release|x64.Build.0 = Release|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Release|x86.ActiveCfg = Release|Any CPU
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -1085,6 +1105,7 @@ Global
 		{3C96BD24-3212-4CD8-86E3-63D1E3E38155} = {DA263218-2FB5-4EA7-B2FB-72D7CF83099E}
 		{821E34CA-5E98-4AC6-853E-024FF85633A4} = {999858D7-9208-40A5-A4D2-1E983F34F7A2}
 		{0D8FB315-111A-4983-9469-446A3F04061A} = {999858D7-9208-40A5-A4D2-1E983F34F7A2}
+		{FD97E290-FFC7-4FC3-A068-355AAE4BCB2E} = {E8260426-80D6-4DEC-8006-ED7ADB965AFF}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {EAF15EE9-DCC5-411B-A9E5-7C2F3D132331}

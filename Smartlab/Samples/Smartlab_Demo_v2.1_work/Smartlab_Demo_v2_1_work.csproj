@@ -122,6 +122,10 @@
       <Project>{c048e3fb-cdc4-4577-a40e-8c9b1b7cedf1}</Project>
       <Name>Microsoft.Psi.Speech</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Sources\CMU.Smartlab.Identity\CMU.Smartlab.Identity.csproj">
+      <Project>{fd97e290-ffc7-4fc3-a068-355aae4bcb2e}</Project>
+      <Name>CMU.Smartlab.Identity</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\Sources\Communication\CMU.Smartlab.Communication.csproj">
       <Project>{01198793-5bf9-4d28-a2af-f8f1d780d263}</Project>
       <Name>CMU.Smartlab.Communication</Name>

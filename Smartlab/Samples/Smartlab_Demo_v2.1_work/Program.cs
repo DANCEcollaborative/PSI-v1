@@ -1,6 +1,7 @@
 ﻿namespace Smartlab_Demo_v2_1_work
 {
     using CMU.Smartlab.Communication;
+    using CMU.Smartlab.Identity;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -35,7 +36,11 @@
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
 
+        private static Dictionary<string, string[]> idInfo = new Dictionary<string, string[]>();
+        private static Dictionary<string, string[]> idTemp = new Dictionary<string, string[]>();
+
         private static CommunicationManager manager;
+        private static IdentityInfoProcess idProcess;
 
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
@@ -118,6 +123,7 @@
             int num = int.Parse(infos[0]);
             if (num >= 1)
             {
+                ProcessID(text);
                 Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
                 manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
             }
@@ -128,9 +134,16 @@
             if (s != null)
             {
                 Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
-                manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{s}");
+                manager.SendText(TopicToVHText, s);
             }
         }
+
+        private static void ProcessID(string s)
+        {
+            idTemp = idProcess.MsgParse(s);
+            idProcess.IdCompare(idInfo, idTemp);
+        }
+
 
         public static void RunDemo(bool AudioOnly=false)
         {
