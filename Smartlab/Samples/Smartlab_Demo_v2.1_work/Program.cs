@@ -29,6 +29,7 @@
         private const string TopicToNVBG = "PSI_NVBG_Location";
         private const string TopicToVHText = "PSI_VHT_Text";
         private const string TopicFromPython = "Python_PSI_Location";
+        private const string TopicFromTextLocation = "Python_PSI_TextLocation";
         private const string TopicFromBazaar = "Bazaar_PSI_Text";
 
         private const int SendingImageWidth = 360;

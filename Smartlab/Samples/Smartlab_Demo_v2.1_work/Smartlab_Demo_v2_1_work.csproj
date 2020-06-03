@@ -123,7 +123,7 @@
       <Name>Microsoft.Psi.Speech</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Sources\CMU.Smartlab.Identity\CMU.Smartlab.Identity.csproj">
-      <Project>{fd97e290-ffc7-4fc3-a068-355aae4bcb2e}</Project>
+      <Project>{d093ee34-08f1-4a54-9690-6ae964795ad2}</Project>
       <Name>CMU.Smartlab.Identity</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\Sources\Communication\CMU.Smartlab.Communication.csproj">
