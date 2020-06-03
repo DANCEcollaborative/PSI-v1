@@ -13,5 +13,6 @@ namespace CMU.Smartlab.Identity
         Point3D position;
         String pose;
         String role;
+        String color;
     }
 }

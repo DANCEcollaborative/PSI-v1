@@ -6,7 +6,6 @@ using System.Threading.Tasks;
 
 namespace CMU.Smartlab.Identity
 {
-
     public class Point3D
     {
         public double x;

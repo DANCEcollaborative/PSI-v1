@@ -85,7 +85,7 @@ namespace CMU.Smartlab.Identity
 
         }
 
-        public void calc_position(Point3D p1)
+        public void alc_Kinect_Position(Point3D p1)
         {
 
         }
