@@ -32,6 +32,7 @@
 
         private const int SendingImageWidth = 360;
         private const int KinectImageWidth = 1920;
+        private const int KinectImageHeight = 1080;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -44,7 +45,6 @@
         public static DateTime LastLocSendTime = new DateTime();
 
         public static SortedList<DateTime, CameraSpacePoint[]> KinectMappingBuffer;
-
 
         static void Main(string[] args)
         {
@@ -122,14 +122,17 @@
         private static void HandleKinectQuery(byte[] b)
         {
             string text = Encoding.ASCII.GetString(b);
+            Console.WriteLine($"Queried for the depth information. Query: {text}");
             string[] infos = text.Split(';');
-            int ticks = int.Parse(infos[0]);
+            long ticks = long.Parse(infos[0]);
             // x should from left to right and y should from up to down
             double x = double.Parse(infos[1]);
             double y = double.Parse(infos[2]);
+            Console.WriteLine($"Parsed: {ticks}, {x}, {y}");
             if (KinectMappingBuffer.Count == 0)
             {
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
+                Console.WriteLine($"Answering Query: {ticks};null");
                 return;
             }
 
@@ -138,6 +141,7 @@
             int right = KinectMappingBuffer.Count;
             while (right - left > 1)
             {
+                Console.WriteLine($"left: {left}, right: {right}");
                 int mid = (right + left) / 2;
                 if (KinectMappingBuffer.ElementAt(mid).Key.Ticks <= ticks)
                 {
@@ -171,30 +175,69 @@
             }
 
             // Convert to original image size:
-            float scale = ((float)KinectImageWidth) / SendingImageWidth;
-            int real_x = (int)(x * scale);
-            int real_y = (int)(y * scale);
-            CameraSpacePoint p = mapper[real_y * KinectImageWidth + real_x];
-            manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{p.X};{p.Y};{p.Z}");
+            int real_x = (int)(x * KinectImageWidth);
+            int real_y = (int)(y * KinectImageHeight);
+            CameraSpacePoint result = new CameraSpacePoint();
+            result.X = 0;
+            result.Y = 0;
+            result.Z = 0;
+            int valid = 0;
+            for (int i = real_x - 5; i < real_x + 6; ++i)
+            {
+                for (int j = real_y - 5; j < real_y + 6; ++j)
+                {
+                    if ((i < 0) || (j < 0) || (i > KinectImageWidth) || (j > KinectImageHeight))
+                    {
+                        continue;
+                    }
+                    CameraSpacePoint p = mapper[j * KinectImageWidth + i];
+                    Console.WriteLine($"({p.X}, {p.Y}, {p.Z})");
+                    if (p.X + p.Y + p.Z < -1000000 || p.X + p.Y + p.Z > 1000000)
+                    {
+                        continue;
+                    }
+                    valid++;
+                    result.X += p.X;
+                    result.Y += p.Y;
+                    result.Z += p.Z;
+                }
+            }
+            if (valid > 0)
+            {
+                // CameraSpacePoint p = mapper[real_y * KinectImageWidth + real_x];
+                manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
+                Console.WriteLine($"Answering Query: {ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
+            }
+            else
+            {
+                manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
+                Console.WriteLine($"Answering Query: {ticks};null");
+            }
         }
 
         private static void ProcessLocation(byte[] b)
         {
-            DateTime time = DateTime.Now;
             /*
+            DateTime time = DateTime.Now;
             if (time.Subtract(LastLocSendTime).TotalSeconds < 0.5)
             {
                 return;
             }
-            */
             LastLocSendTime = time;
+            */
             string text = Encoding.ASCII.GetString(b);
             string[] infos = text.Split(';');
             int num = int.Parse(infos[0]);
             if (num >= 1)
             {
-                Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
-                manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
+                for (int i = 1; i < infos.Length; ++i)
+                {
+                    string info = infos[i];
+                    string id = info.Split('&')[0];
+                    string pos = info.Split('&')[1];
+                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{id};%;location:{pos}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{id};%;location:{pos}");
+                }
             }
         }
 
@@ -233,7 +276,7 @@
                     // var kinectRGBD = kinectSensor.RGBDImage;
                     var kinectColor = kinectSensor.ColorImage;
                     var kinectMapping = kinectSensor.ColorToCameraMapper;
-                    kinectMapping.Do(addNewMapper);
+                    kinectMapping.Do(AddNewMapper);
 
                     // var kinectDepth = kinectSensor.DepthImage;
                     // var decoded = video.Out.Decode().Out;
@@ -283,21 +326,25 @@
             }
         }
 
-        private static void addNewMapper(CameraSpacePoint[] mapper, Envelope envelope)
+        private static void AddNewMapper(CameraSpacePoint[] mapper, Envelope envelope)
         {
             var time = envelope.OriginatingTime;
             KinectMappingBuffer.Add(time, mapper);
-            while (DateTime.Now.Subtract(KinectMappingBuffer.First().Key).TotalSeconds > 10)
+            while (KinectMappingBuffer.Last().Key.Subtract(KinectMappingBuffer.First().Key).TotalSeconds > 10)
             {
+                var rem_time = KinectMappingBuffer.First().Key;
                 KinectMappingBuffer.RemoveAt(0);
             }
         }
 
         private static void SendDialogToBazaar(IStreamingSpeechRecognitionResult result, Envelope envelope)
         {
-            Console.WriteLine($"Send text message to Bazaar: {result.Text}");
-            manager.SendText(TopicToBazaar, result.Text);
-            manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{result.Text}");
+            if (result.Text.Length > 0)
+            {
+                Console.WriteLine($"Send text message to Bazaar: {result.Text}");
+                manager.SendText(TopicToBazaar, result.Text);
+                manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{result.Text}");
+            }
         }
 
         private static void Pipeline_PipelineCompleted(object sender, PipelineCompletedEventArgs e)

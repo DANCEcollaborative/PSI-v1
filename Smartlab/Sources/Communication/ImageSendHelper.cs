@@ -59,10 +59,10 @@ namespace CMU.Smartlab.Communication
                 {
                     try
                     {
-                        Console.WriteLine($"Width = {rawData.Width}, Height = {rawData.Height}, Format = {rawData.PixelFormat}");
+                        // Console.WriteLine($"Width = {rawData.Width}, Height = {rawData.Height}, Format = {rawData.PixelFormat}");
                         int w = rawData.Width;
-                        // float scale = (float)SendingWidth / w;
-                        // rawData = rawData.Scale(scale, scale, SamplingMode.Bilinear).Resource;
+                        float scale = (float)SendingWidth / w;
+                        rawData = rawData.Scale(scale, scale, SamplingMode.Bilinear).Resource;
                         // Console.WriteLine($"After scaling: Width = {rawData.Width}, Height = {rawData.Height}, Format = {rawData.PixelFormat}");
                         this.manager.SendText(this.SizeTopic, $"{rawData.Width}:{rawData.Height}");
                         this.manager.SendText(this.PropertyTopic, $"camera_id:str:{this.Name}");
