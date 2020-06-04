@@ -1,6 +1,7 @@
-﻿namespace Smartlab_Demo_v2_1
+﻿namespace Smartlab_Demo_v2_1_work
 {
     using CMU.Smartlab.Communication;
+    using CMU.Smartlab.Identity;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -13,7 +14,8 @@
     using Microsoft.Psi.Imaging;
     using Microsoft.Psi.Media;
     using Microsoft.Psi.Speech;
-    using Apache.NMS;
+    using System.Security.Cryptography;
+    using Apache.NMS.ActiveMQ.Commands;
 
     class Program
     {
@@ -27,6 +29,7 @@
         private const string TopicToNVBG = "PSI_NVBG_Location";
         private const string TopicToVHText = "PSI_VHT_Text";
         private const string TopicFromPython = "Python_PSI_Location";
+        private const string TopicFromTextLocation = "Python_PSI_TextLocation";
         private const string TopicFromBazaar = "Bazaar_PSI_Text";
 
         private const int SendingImageWidth = 360;
@@ -34,12 +37,14 @@
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
 
+        private static Dictionary<string, string[]> idInfo = new Dictionary<string, string[]>();
+        private static Dictionary<string, string[]> idTemp = new Dictionary<string, string[]>();
+
         private static CommunicationManager manager;
+        private static IdentityInfoProcess idProcess;
 
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
-
-        public static DateTime LastLocSendTime = new DateTime();
 
         static void Main(string[] args)
         {
@@ -114,19 +119,12 @@
 
         private static void ProcessLocation(byte[] b)
         {
-            DateTime time = DateTime.Now;
-            /*
-            if (time.Subtract(LastLocSendTime).TotalSeconds < 0.5)
-            {
-                return;
-            }
-            */
-            LastLocSendTime = time;
             string text = Encoding.ASCII.GetString(b);
             string[] infos = text.Split(';');
             int num = int.Parse(infos[0]);
             if (num >= 1)
             {
+                ProcessID(text);
                 Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
                 manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
             }
@@ -137,13 +135,16 @@
             if (s != null)
             {
                 Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
-<<<<<<< HEAD
                 manager.SendText(TopicToVHText, s);
-=======
-                manager.SendText(TopicToVHText,s);
->>>>>>> 46cef6fd7a4eb6a6173b662f28831bf7a5788f60
             }
         }
+
+        private static void ProcessID(string s)
+        {
+            idTemp = idProcess.MsgParse(s);
+            idProcess.IdCompare(idInfo, idTemp);
+        }
+
 
         public static void RunDemo(bool AudioOnly=false)
         {
@@ -158,7 +159,7 @@
                 // var video = store.OpenStream<Shared<EncodedImage>>("Image");
                 if (!AudioOnly)
                 {
-                    MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30, true);
 
                     // var decoded = video.Out.Decode().Out;
                     ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
@@ -169,12 +170,7 @@
                 // Send audio part to Bazaar
 
                 // var audio = store.OpenStream<AudioBuffer>("Audio");
-                var audioConfig = new AudioCaptureConfiguration()
-                {
-                    OutputFormat = WaveFormat.Create16kHz1Channel16BitPcm(),
-                    DropOutOfOrderPackets = true
-                };
-                IProducer<AudioBuffer> audio = new AudioCapture(pipeline, audioConfig);
+                IProducer<AudioBuffer> audio = new AudioCapture(pipeline, new AudioCaptureConfiguration() { OutputFormat = WaveFormat.Create16kHz1Channel16BitPcm() });
 
                 var vad = new SystemVoiceActivityDetector(pipeline);
                 audio.PipeTo(vad);
@@ -209,10 +205,46 @@
 
         private static void SendDialogToBazaar(IStreamingSpeechRecognitionResult result, Envelope envelope)
         {
-            Console.WriteLine($"Send text message to Bazaar: {result.Text}");
-            manager.SendText(TopicToBazaar, result.Text);
-            //manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{result.Text}");
+            String speech = result.Text; 
+            if (speech != "")
+            {
+                String name = getRandomName();
+                String location = getRandomLocation(); 
+                String messageToBazaar = "multimodal:true;%;speech:" + result.Text + ";%;identity:" + name + ";%;location:" + location;
+                Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                manager.SendText(TopicToBazaar, messageToBazaar);
+            }
         }
+
+        private static String getRandomName()
+        {
+            Random randomFunc = new Random();
+            int randomNum = randomFunc.Next(0, 3);
+            if (randomNum == 1)
+                return "Haogang";
+            else
+                return "Yansen";
+        }
+
+        private static String getRandomLocation()
+        {
+            Random randomFunc = new Random();
+            int randomNum = randomFunc.Next(0, 4);
+            switch (randomNum)
+            {
+                case 0:
+                    return "0:0:0";
+                case 1:
+                    return "75:100:0";
+                case 2:
+                    return "150:200:0";
+                case 3:
+                    return "225:300:0";
+                default:
+                    return "0:0:0";
+            }
+        }
+
 
         private static void Pipeline_PipelineCompleted(object sender, PipelineCompletedEventArgs e)
         {
