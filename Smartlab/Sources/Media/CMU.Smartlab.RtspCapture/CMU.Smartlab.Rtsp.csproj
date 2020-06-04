@@ -147,7 +147,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy "$(ProjectDir)\x64\*.dll" "$(TargetDir)" /Y /E /C /F
-xcopy "$(ProjectDir)..\libffmpeghelper\x64\$(Configuration)\libffmpeghelper.dll"  "$(TargetDir)"  /Y /E /C /F</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
 </Project>

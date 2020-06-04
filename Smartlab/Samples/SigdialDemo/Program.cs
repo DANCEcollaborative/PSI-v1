@@ -1,6 +1,7 @@
 ﻿namespace Smartlab_Demo_v2_1
 {
     using CMU.Smartlab.Communication;
+    using CMU.Smartlab.Identity;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -34,10 +35,14 @@
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
+        private static Dictionary<string, string[]> idInfo = new Dictionary<string, string[]>();
+        private static Dictionary<string, string[]> idTemp = new Dictionary<string, string[]>();
+
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
 
         private static CommunicationManager manager;
+        private static IdentityInfoProcess idProcess;
 
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
@@ -232,11 +237,14 @@
             {
                 for (int i = 1; i < infos.Length; ++i)
                 {
-                    string info = infos[i];
+                    ProcessID(text);
+                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
+/*                    string info = infos[i];
                     string id = info.Split('&')[0];
                     string pos = info.Split('&')[1];
                     Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{id};%;location:{pos}");
-                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{id};%;location:{pos}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{id};%;location:{pos}");*/
                 }
             }
         }
@@ -246,9 +254,15 @@
             if (s != null)
             {
                 Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
-                manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{s}");
+                manager.SendText(TopicToVHText, s);
             }
         }
+        private static void ProcessID(string s)
+        {
+            idTemp = idProcess.MsgParse(s);
+            idProcess.IdCompare(idInfo, idTemp);
+        }
+
 
         public static void RunDemo(bool AudioOnly = false)
         {
@@ -339,13 +353,46 @@
 
         private static void SendDialogToBazaar(IStreamingSpeechRecognitionResult result, Envelope envelope)
         {
-            if (result.Text.Length > 0)
+            String speech = result.Text;
+            if (speech != "")
             {
-                Console.WriteLine($"Send text message to Bazaar: {result.Text}");
-                manager.SendText(TopicToBazaar, result.Text);
-                manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{result.Text}");
+                String name = getRandomName();
+                String location = getRandomLocation();
+                String messageToBazaar = "multimodal:true;%;speech:" + result.Text + ";%;identity:" + name + ";%;location:" + location;
+                Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                manager.SendText(TopicToBazaar, messageToBazaar);
             }
         }
+
+        private static String getRandomName()
+        {
+            Random randomFunc = new Random();
+            int randomNum = randomFunc.Next(0, 3);
+            if (randomNum == 1)
+                return "Haogang";
+            else
+                return "Yansen";
+        }
+
+        private static String getRandomLocation()
+        {
+            Random randomFunc = new Random();
+            int randomNum = randomFunc.Next(0, 4);
+            switch (randomNum)
+            {
+                case 0:
+                    return "0:0:0";
+                case 1:
+                    return "75:100:0";
+                case 2:
+                    return "150:200:0";
+                case 3:
+                    return "225:300:0";
+                default:
+                    return "0:0:0";
+            }
+        }
+
 
         private static void Pipeline_PipelineCompleted(object sender, PipelineCompletedEventArgs e)
         {

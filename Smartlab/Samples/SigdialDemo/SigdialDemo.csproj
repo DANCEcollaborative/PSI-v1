@@ -141,6 +141,14 @@
       <Project>{01198793-5bf9-4d28-a2af-f8f1d780d263}</Project>
       <Name>CMU.Smartlab.Communication</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Sources\Identity\CMU.Smartlab.Identity.csproj">
+      <Project>{d093ee34-08f1-4a54-9690-6ae964795ad2}</Project>
+      <Name>CMU.Smartlab.Identity</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\Sources\Media\CMU.Smartlab.RtspCapture\CMU.Smartlab.Rtsp.csproj">
+      <Project>{fdeea121-60b4-4a2e-8fd0-cfa9f0fdfade}</Project>
+      <Name>CMU.Smartlab.Rtsp</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

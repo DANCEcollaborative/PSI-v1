@@ -13,6 +13,7 @@
     using Microsoft.Psi.Imaging;
     using Microsoft.Psi.Media;
     using Microsoft.Psi.Speech;
+    using Apache.NMS;
 
     class Program
     {
@@ -136,7 +137,7 @@
             if (s != null)
             {
                 Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
-                manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{s}");
+                manager.SendText(TopicToVHText, s);
             }
         }
 
@@ -206,7 +207,7 @@
         {
             Console.WriteLine($"Send text message to Bazaar: {result.Text}");
             manager.SendText(TopicToBazaar, result.Text);
-            manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{result.Text}");
+            //manager.SendText(TopicToVHText, $"multimodal:false;%;identity:someone;%;text:{result.Text}");
         }
 
         private static void Pipeline_PipelineCompleted(object sender, PipelineCompletedEventArgs e)
