@@ -127,17 +127,17 @@
         private static void HandleKinectQuery(byte[] b)
         {
             string text = Encoding.ASCII.GetString(b);
-            Console.WriteLine($"Queried for the depth information. Query: {text}");
+            //Console.WriteLine($"Queried for the depth information. Query: {text}");
             string[] infos = text.Split(';');
             long ticks = long.Parse(infos[0]);
             // x should from left to right and y should from up to down
             double x = double.Parse(infos[1]);
             double y = double.Parse(infos[2]);
-            Console.WriteLine($"Parsed: {ticks}, {x}, {y}");
+            //Console.WriteLine($"Parsed: {ticks}, {x}, {y}");
             if (KinectMappingBuffer.Count == 0)
             {
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
-                Console.WriteLine($"Answering Query: {ticks};null");
+               // Console.WriteLine($"Answering Query: {ticks};null");
                 return;
             }
 
@@ -146,7 +146,7 @@
             int right = KinectMappingBuffer.Count;
             while (right - left > 1)
             {
-                Console.WriteLine($"left: {left}, right: {right}");
+                // Console.WriteLine($"left: {left}, right: {right}");
                 int mid = (right + left) / 2;
                 if (KinectMappingBuffer.ElementAt(mid).Key.Ticks <= ticks)
                 {
@@ -196,7 +196,7 @@
                         continue;
                     }
                     CameraSpacePoint p = mapper[j * KinectImageWidth + i];
-                    Console.WriteLine($"({p.X}, {p.Y}, {p.Z})");
+                   // Console.WriteLine($"({p.X}, {p.Y}, {p.Z})");
                     if (p.X + p.Y + p.Z < -1000000 || p.X + p.Y + p.Z > 1000000)
                     {
                         continue;
@@ -211,12 +211,12 @@
             {
                 // CameraSpacePoint p = mapper[real_y * KinectImageWidth + real_x];
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
-                Console.WriteLine($"Answering Query: {ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
+                //Console.WriteLine($"Answering Query: {ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
             }
             else
             {
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
-                Console.WriteLine($"Answering Query: {ticks};null");
+               // Console.WriteLine($"Answering Query: {ticks};null");
             }
         }
 
@@ -237,9 +237,9 @@
             {
                 for (int i = 1; i < infos.Length; ++i)
                 {
-                    ProcessID(text);
-                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
-                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
+                    // ProcessID(infos[i]);
+                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
 /*                    string info = infos[i];
                     string id = info.Split('&')[0];
                     string pos = info.Split('&')[1];
