@@ -237,9 +237,9 @@
             {
                 for (int i = 1; i < infos.Length; ++i)
                 {
-                    ProcessID(text);
-                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
-                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
+                    // ProcessID(infos[i]);
+                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
 /*                    string info = infos[i];
                     string id = info.Split('&')[0];
                     string pos = info.Split('&')[1];
