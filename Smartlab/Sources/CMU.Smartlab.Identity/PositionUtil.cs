@@ -1,11 +1,59 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace CMU.Smartlab.Identity
 {
+    public static class Point
+    {
+        public static double Dot(Point3D p1, Point3D p2)
+        {
+            return p1 * p2;
+        }
+
+        public static double Dot(Point2D p1, Point2D p2)
+        {
+            return p1 * p2;
+        }
+
+        public static Point3D ElementwiseProduct(Point3D p1, Point3D p2)
+        {
+            return new Point3D(p1.x * p2.x, p1.y * p2.y, p1.z * p2.z);
+        }
+
+        public static Point2D ElementwiseProduct(Point2D p1, Point2D p2)
+        {
+            return new Point2D(p1.x * p2.x, p1.y * p2.y);
+        }
+
+
+        public static Point3D Cross(Point3D p1, Point3D p2)
+        {
+            return new Point3D(
+                p1.y * p2.z - p1.z * p2.y,
+                p1.z * p2.x - p1.x * p2.z,
+                p1.x * p2.y - p1.y * p2.x
+            );
+        }
+
+        public static double Distance(Point3D p1, Point3D p2)
+        {
+            return (p1 - p2).Length();
+        }
+        public static double Distance(Point2D p1, Point2D p2)
+        {
+            return (p1 - p2).Length();
+        }
+
+        public static Point3D Mid(Point3D p1, Point3D p2)
+        {
+            return (p1 + p2) / 2;
+        }
+
+        public static Point2D Mid(Point2D p1, Point2D p2)
+        {
+            return (p1 + p2) / 2;
+        }
+    }
+
     public class Point3D
     {
         public double x;
@@ -36,6 +84,11 @@ namespace CMU.Smartlab.Identity
         public static Point3D Zero()
         {
             return new Point3D();
+        }
+
+        public bool IsZero()
+        {
+            return this == Zero();
         }
 
         public double Length()
@@ -145,6 +198,11 @@ namespace CMU.Smartlab.Identity
         public Point2D Zero()
         {
             return new Point2D();
+        }
+
+        public bool IsZero()
+        {
+            return this == Zero();
         }
 
         public double Length()
