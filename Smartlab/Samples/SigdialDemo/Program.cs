@@ -35,8 +35,6 @@
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
-        private static Dictionary<string, string[]> idInfo = new Dictionary<string, string[]>();
-        private static Dictionary<string, string[]> idTemp = new Dictionary<string, string[]>();
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -49,6 +47,7 @@
 
         public static DateTime LastLocSendTime = new DateTime();
 
+        public static List<IdentityInfo> IdInfoList;
         public static SortedList<DateTime, CameraSpacePoint[]> KinectMappingBuffer;
 
         static void Main(string[] args)
@@ -130,6 +129,7 @@
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
             KinectMappingBuffer = new SortedList<DateTime, CameraSpacePoint[]>();
+            IdInfoList = new List<IdentityInfo>();
             return true;
         }
 
@@ -242,19 +242,26 @@
             string text = Encoding.ASCII.GetString(b);
             string[] infos = text.Split(';');
             int num = int.Parse(infos[0]);
+            long ts = long.Parse(infos[1]); 
+            Console.WriteLine("New message!");
+            Console.WriteLine(DateTime.Now);
+            Console.WriteLine(new DateTime(ts));
             if (num >= 1)
             {
-                for (int i = 1; i < infos.Length; ++i)
+                for (int i = 2; i < infos.Length; ++i)
                 {
                     // ProcessID(infos[i]);
+                    IdentityInfo info = IdentityInfo.Parse(ts, infos[i]);
+                    IdInfoList.Add(info);
                     Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
                     manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
-/*                    string info = infos[i];
-                    string id = info.Split('&')[0];
-                    string pos = info.Split('&')[1];
-                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{id};%;location:{pos}");
-                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{id};%;location:{pos}");*/
                 }
+
+                while (IdInfoList.Count > 0 && IdInfoList.Last().timestamp.Subtract(IdInfoList.First().timestamp).TotalSeconds > 10)
+                {
+                    IdInfoList.RemoveAt(0);
+                }
+                Console.WriteLine(IdInfoList.Count);
             }
         }
 
@@ -268,8 +275,8 @@
         }
         private static void ProcessID(string s)
         {
-            idTemp = idProcess.MsgParse(s);
-            idProcess.IdCompare(idInfo, idTemp);
+            // idTemp = idProcess.MsgParse(s);
+            // idProcess.IdCompare(idInfo, idTemp);
         }
 
 
