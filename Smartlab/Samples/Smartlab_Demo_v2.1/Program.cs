@@ -137,11 +137,7 @@
             if (s != null)
             {
                 Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
-<<<<<<< HEAD
                 manager.SendText(TopicToVHText, s);
-=======
-                manager.SendText(TopicToVHText,s);
->>>>>>> 46cef6fd7a4eb6a6173b662f28831bf7a5788f60
             }
         }
 

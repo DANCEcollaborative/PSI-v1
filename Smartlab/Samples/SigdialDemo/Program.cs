@@ -54,6 +54,11 @@
         static void Main(string[] args)
         {
             SetConsole();
+            Point3D pa = new Point3D(1, 2, 0);
+            Point3D pb = new Point3D(-2, 1, 0);
+
+            Console.WriteLine(PUtil.IsVertical(pa, pb));
+
             if (Initialize())
             {
                 bool exit = false;
