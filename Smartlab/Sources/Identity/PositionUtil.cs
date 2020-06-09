@@ -189,7 +189,7 @@ namespace CMU.Smartlab.Identity
 
         public override String ToString()
         {
-            String s = $"Point3D:({this.x},{this.y},{this.z})";
+            String s = $"{this.x}:{this.y}:{this.z}";
             return s;
         }
 

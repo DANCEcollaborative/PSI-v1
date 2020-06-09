@@ -1,4 +1,4 @@
-﻿namespace Smartlab_Demo_v2_1
+﻿namespace SigdialDemo
 {
     using CMU.Smartlab.Communication;
     using CMU.Smartlab.Identity;
@@ -34,9 +34,11 @@
         private const int SendingImageWidth = 360;
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
+        private static Point3D KinectPosition = new Point3D(0, 0, 0);
 
         private static Dictionary<string, string[]> idInfo = new Dictionary<string, string[]>();
         private static Dictionary<string, string[]> idTemp = new Dictionary<string, string[]>();
+
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -48,8 +50,11 @@
         public static readonly object SendToPythonLock = new object();
 
         public static DateTime LastLocSendTime = new DateTime();
+        private static TimeSpan hundredMs = TimeSpan.FromSeconds(0.1);
 
         public static SortedList<DateTime, CameraSpacePoint[]> KinectMappingBuffer;
+        public static SortedList<DateTime, Student[]> StudentInfo;
+        public static Student kinectAudioNearest;
 
         static void Main(string[] args)
         {
@@ -275,6 +280,16 @@
             {
                 pipeline.PipelineExceptionNotHandled += Pipeline_PipelineException;
                 pipeline.PipelineCompleted += Pipeline_PipelineCompleted;
+                var kinectSensorConfig = new KinectSensorConfiguration
+                {
+                    OutputColor = true,
+                    OutputDepth = true,
+                    OutputRGBD = true,
+                    OutputColorToCameraMapping = true,
+                    OutputBodies = false,
+                    OutputAudio = true,
+                };
+                var kinectSensor = new Microsoft.Psi.Kinect.KinectSensor(pipeline, kinectSensorConfig);
 
                 // var store = Store.Open(pipeline, Program.LogName, Program.LogPath);
                 // Send video part to Python
@@ -282,15 +297,7 @@
                 // var video = store.OpenStream<Shared<EncodedImage>>("Image");
                 if (!AudioOnly)
                 {
-                    var kinectSensorConfig = new KinectSensorConfiguration
-                    {
-                        OutputColor = true,
-                        OutputDepth = true,
-                        OutputRGBD = true,
-                        OutputColorToCameraMapping = true,
-                        OutputBodies = false,
-                    };
-                    var kinectSensor = new Microsoft.Psi.Kinect.KinectSensor(pipeline, kinectSensorConfig);
+                    
                     // MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
                     // var kinectRGBD = kinectSensor.RGBDImage;
                     var kinectColor = kinectSensor.ColorImage;
@@ -305,18 +312,15 @@
                 }
 
                 // Send audio part to Bazaar
-
-                // var audio = store.OpenStream<AudioBuffer>("Audio");
                 var audioConfig = new AudioCaptureConfiguration()
                 {
                     OutputFormat = WaveFormat.Create16kHz1Channel16BitPcm(),
                     DropOutOfOrderPackets = true
                 };
-                IProducer<AudioBuffer> audio = new AudioCapture(pipeline, audioConfig);
-
+                IProducer<AudioBuffer> audio = new AudioCapture(pipeline, audioConfig);                
+                // var audio = store.OpenStream<AudioBuffer>("Audio");
                 var vad = new SystemVoiceActivityDetector(pipeline);
                 audio.PipeTo(vad);
-
                 var recognizer = new AzureSpeechRecognizer(pipeline, new AzureSpeechRecognizerConfiguration()
                 {
                     SubscriptionKey = Program.AzureSubscriptionKey,
@@ -327,6 +331,23 @@
 
                 var finalResults = recognizer.Out.Where(result => result.IsFinal);
                 finalResults.Do(SendDialogToBazaar);
+
+                // Create Voice Activation Detector from Kinect
+                var kinectSpeechDetector = new SystemVoiceActivityDetector(pipeline);
+                var convertedAudio = kinectSensor.Audio.Resample(WaveFormat.Create16kHz1Channel16BitPcm());
+                convertedAudio.PipeTo(kinectSpeechDetector);
+                var audioBeamInfo = kinectSensor.AudioBeamInfo;
+                audioBeamInfo.Do(NearestAngleCalc);
+                //var kinectBeamandSpeechDetector = kinectSpeechDetector.Join(audioBeamInfo, hundredMs).Select((t, e) => t.Item1 && t.Item2);
+                var kinectRecognizer = new AzureSpeechRecognizer(pipeline, new AzureSpeechRecognizerConfiguration()
+                {
+                    SubscriptionKey = Program.AzureSubscriptionKey,
+                    Region = Program.AzureRegion
+                });
+                audio.Join(kinectSpeechDetector).PipeTo(kinectRecognizer);
+                var kinectSpeechResults = kinectRecognizer.Out.Where(result => result.IsFinal);
+                kinectSpeechResults.Do(KinectSpeechToBazzar);     
+
 
                 // Todo: Add some data storage here
                 // var dataStore = Store.Create(pipeline, Program.AppName, Environment.GetFolderPath(Environment.SpecialFolder.MyVideos));
@@ -345,6 +366,47 @@
             }
         }
 
+        private static void KinectSpeechToBazzar(IStreamingSpeechRecognitionResult result, Envelope envelope)
+        {
+            String speech = result.Text;
+            if (speech != "")
+            {
+                String name = kinectAudioNearest.identity;
+                String location = kinectAudioNearest.postion.ToString();
+                String messageToBazaar = "multimodal:true;%;speech:" + result.Text + ";%;identity:" + name + ";%;location:" + location;
+                Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                manager.SendText(TopicToBazaar, messageToBazaar);
+            }
+        }
+
+        private static void NearestAngleCalc(KinectAudioBeamInfo beam, Envelope envelope)
+        {
+            if (beam.Confidence < 0.001)
+            {
+                Student[] latests = StudentInfo.First().Value;
+                kinectAudioNearest.postion = latests[0].postion;
+            }
+            var time = envelope.OriginatingTime;
+            Student[] studentlist = StudentInfo.First().Value;
+            float angleDiffer = 1;
+            foreach(Student s in studentlist)
+            {
+                Point3D p1 = KinectCoodinateTrans(KinectPosition, s.postion);
+                float anglep = (float)Math.Atan(p1.x / p1.y);
+                float d = Math.Abs(beam.Angle - anglep);
+                if (d < angleDiffer)
+                {
+                    angleDiffer = d;
+                    kinectAudioNearest.postion = s.postion;
+                    kinectAudioNearest.identity = s.identity;
+                }
+            }
+        }
+        private static Point3D KinectCoodinateTrans(Point3D p0,Point3D p1)
+        {
+            return p1;
+        }
+
         private static void AddNewMapper(CameraSpacePoint[] mapper, Envelope envelope)
         {
             var time = envelope.OriginatingTime;
@@ -355,6 +417,7 @@
                 KinectMappingBuffer.RemoveAt(0);
             }
         }
+
 
         private static void SendDialogToBazaar(IStreamingSpeechRecognitionResult result, Envelope envelope)
         {

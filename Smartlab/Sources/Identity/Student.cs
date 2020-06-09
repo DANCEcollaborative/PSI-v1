@@ -6,13 +6,14 @@ using System.Threading.Tasks;
  
 namespace CMU.Smartlab.Identity
 {
-    class Student
+    public class Student
     {
-        String identity;
+        public String identity { get; set; }
         String realname;
-        Point3D position;
         String pose;
         String role;
         String color;
+
+        public Point3D postion { get; set; }
     }
 }
