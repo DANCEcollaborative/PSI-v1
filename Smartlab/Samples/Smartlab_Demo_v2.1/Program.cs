@@ -159,6 +159,8 @@
                     // var decoded = video.Out.Decode().Out;
                     ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
                     webcam.Out.Do(helper.SendImage);
+                    Console.WriteLine($"send image to sever {helper.Name}");
+
                     // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                 }
 

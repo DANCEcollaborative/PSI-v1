@@ -65,18 +65,22 @@
                 while (!exit)
                 {
                     Console.WriteLine("############################################################################");
-                    Console.WriteLine("1) Multimodal streaming. Press any key to finish streaming.");
-                    Console.WriteLine("2) Audio only. Press any key to finish streaming.");
+                    Console.WriteLine("1) Multimodal streaming with Kinect. Press any key to finish streaming.");
+                    Console.WriteLine("2) Multimodal streaming with Webcam. Press any key to finish streaming.");
+                    Console.WriteLine("3) Audio only. Press any key to finish streaming.");                    
                     Console.WriteLine("Q) Quit.");
                     ConsoleKey key = Console.ReadKey().Key;
                     Console.WriteLine();
                     switch (key)
                     {
                         case ConsoleKey.D1:
-                            RunDemo();
+                            RunDemo(false,false);
                             break;
                         case ConsoleKey.D2:
-                            RunDemo(true);
+                            RunDemo(false,true);
+                            break;
+                        case ConsoleKey.D3:
+                            RunDemo(true,true);
                             break;
                         case ConsoleKey.Q:
                             exit = true;
@@ -269,7 +273,7 @@
         }
 
 
-        public static void RunDemo(bool AudioOnly = false)
+        public static void RunDemo(bool AudioOnly = false, bool Webcam = false)
         {
             using (Pipeline pipeline = Pipeline.Create())
             {
@@ -280,7 +284,7 @@
                 // Send video part to Python
 
                 // var video = store.OpenStream<Shared<EncodedImage>>("Image");
-                if (!AudioOnly)
+                if (!AudioOnly && !Webcam)
                 {
                     var kinectSensorConfig = new KinectSensorConfiguration
                     {
@@ -301,6 +305,15 @@
                     // var decoded = video.Out.Decode().Out;
                     ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
                     kinectColor.Do(helper.SendImage);
+                    // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                }
+                else if (!AudioOnly && Webcam)
+                {
+                    MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+
+                    // var decoded = video.Out.Decode().Out;
+                    ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
+                    webcam.Out.Do(helper.SendImage);
                     // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                 }
 
