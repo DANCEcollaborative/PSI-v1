@@ -40,7 +40,6 @@
         private static string AzureRegion = "eastus";
 
         private static CommunicationManager manager;
-        private static IdentityInfoProcess idProcess;
 
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
@@ -255,6 +254,8 @@
                     IdInfoList.Add(info);
                     Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
                     manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
+                    manager.SendText(TopicToBazaar, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
+                    Console.WriteLine($"Send location Location to Bazaar: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
                 }
 
                 while (IdInfoList.Count > 0 && IdInfoList.Last().timestamp.Subtract(IdInfoList.First().timestamp).TotalSeconds > 10)
@@ -273,12 +274,6 @@
                 manager.SendText(TopicToVHText, s);
             }
         }
-        private static void ProcessID(string s)
-        {
-            // idTemp = idProcess.MsgParse(s);
-            // idProcess.IdCompare(idInfo, idTemp);
-        }
-
 
         public static void RunDemo(bool AudioOnly = false, bool Webcam = false)
         {
@@ -381,11 +376,22 @@
             String speech = result.Text;
             if (speech != "")
             {
-                String name = getRandomName();
-                String location = getRandomLocation();
-                String messageToBazaar = "multimodal:true;%;speech:" + result.Text + ";%;identity:" + name + ";%;location:" + location;
+                if (IdInfoList!=null && IdInfoList.Count > 0)
+                {
+                String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.First().identity};%;speech:{result.Text}";
                 Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
                 manager.SendText(TopicToBazaar, messageToBazaar);
+                }
+                else
+                {
+                    String name = getRandomName();
+                    String messageToBazaar = $"multimodal:true;%;identity:{name};%;speech:{result.Text}";
+                    //String location = getRandomLocation(); 
+                    Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
+                    manager.SendText(TopicToBazaar, messageToBazaar);
+                }
+
+
             }
         }
 
