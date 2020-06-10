@@ -239,7 +239,7 @@
             LastLocSendTime = time;
             */
             string text = Encoding.ASCII.GetString(b);
-            string[] infos = text.Split(';');
+            string[] infos = text.Split(':');
             int num = int.Parse(infos[0]);
             long ts = long.Parse(infos[1]); 
             Console.WriteLine("New message!");
