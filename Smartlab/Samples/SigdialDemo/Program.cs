@@ -65,20 +65,20 @@
                     Console.WriteLine("############################################################################");
                     Console.WriteLine("1) Multimodal streaming with Kinect. Press any key to finish streaming.");
                     Console.WriteLine("2) Multimodal streaming with Webcam. Press any key to finish streaming.");
-                    Console.WriteLine("3) Audio only. Press any key to finish streaming.");                    
+                    Console.WriteLine("3) Audio only. Press any key to finish streaming.");
                     Console.WriteLine("Q) Quit.");
                     ConsoleKey key = Console.ReadKey().Key;
                     Console.WriteLine();
                     switch (key)
                     {
                         case ConsoleKey.D1:
-                            RunDemo(false,false);
+                            RunDemo(false, false);
                             break;
                         case ConsoleKey.D2:
-                            RunDemo(false,true);
+                            RunDemo(false, true);
                             break;
                         case ConsoleKey.D3:
-                            RunDemo(true,true);
+                            RunDemo(true, true);
                             break;
                         case ConsoleKey.Q:
                             exit = true;
@@ -123,12 +123,12 @@
                 Console.WriteLine("Missing Subscription Key!");
                 return false;
             }
+            IdInfoList = new List<IdentityInfo>();
             manager = new CommunicationManager();
             manager.subscribe(TopicFromPython, ProcessLocation);
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
             KinectMappingBuffer = new SortedList<DateTime, CameraSpacePoint[]>();
-            IdInfoList = new List<IdentityInfo>();
             return true;
         }
 
@@ -145,7 +145,7 @@
             if (KinectMappingBuffer.Count == 0)
             {
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
-               // Console.WriteLine($"Answering Query: {ticks};null");
+                // Console.WriteLine($"Answering Query: {ticks};null");
                 return;
             }
 
@@ -204,7 +204,7 @@
                         continue;
                     }
                     CameraSpacePoint p = mapper[j * KinectImageWidth + i];
-                   // Console.WriteLine($"({p.X}, {p.Y}, {p.Z})");
+                    // Console.WriteLine($"({p.X}, {p.Y}, {p.Z})");
                     if (p.X + p.Y + p.Z < -1000000 || p.X + p.Y + p.Z > 1000000)
                     {
                         continue;
@@ -224,7 +224,7 @@
             else
             {
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
-               // Console.WriteLine($"Answering Query: {ticks};null");
+                // Console.WriteLine($"Answering Query: {ticks};null");
             }
         }
 
@@ -239,12 +239,12 @@
             LastLocSendTime = time;
             */
             string text = Encoding.ASCII.GetString(b);
-            string[] infos = text.Split(':');
+            string[] infos = text.Split(';');
             int num = int.Parse(infos[0]);
-            long ts = long.Parse(infos[1]); 
-            Console.WriteLine("New message!");
-            Console.WriteLine(DateTime.Now);
-            Console.WriteLine(new DateTime(ts));
+            long ts = long.Parse(infos[1]);
+            // Console.WriteLine("New message!");
+            // Console.WriteLine(DateTime.Now);
+            // Console.WriteLine(new DateTime(ts));
             if (num >= 1)
             {
                 for (int i = 2; i < infos.Length; ++i)
@@ -254,7 +254,7 @@
                     IdInfoList.Add(info);
                     Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
                     manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
-                    manager.SendText(TopicToBazaar, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
+                    // manager.SendText(TopicToBazaar, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
                     Console.WriteLine($"Send location Location to Bazaar: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
                 }
 
@@ -376,11 +376,11 @@
             String speech = result.Text;
             if (speech != "")
             {
-                if (IdInfoList!=null && IdInfoList.Count > 0)
+                if (IdInfoList != null && IdInfoList.Count > 0)
                 {
-                String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.First().identity};%;speech:{result.Text}";
-                Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                manager.SendText(TopicToBazaar, messageToBazaar);
+                    String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.First().identity};%;speech:{result.Text}";
+                    Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                    manager.SendText(TopicToBazaar, messageToBazaar);
                 }
                 else
                 {
