@@ -36,7 +36,7 @@
         private const int KinectImageHeight = 1080;
 
         private const double SocialDistance = 183;
-
+        public const double DistanceWarningCooldown = 30.0;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -48,6 +48,7 @@
         public static readonly object LocationLock = new object();
 
         public static DateTime LastLocSendTime = new DateTime();
+        public static DateTime LastDistanceWarning = new DateTime();
 
         public static List<IdentityInfo> IdInfoList;
         public static SortedList<DateTime, CameraSpacePoint[]> KinectMappingBuffer;
@@ -284,28 +285,32 @@
                     }
 
                     // Detect whether there're two people that violate the social distancing.
-                    Dictionary<string, Point3D> locations = new Dictionary<string, Point3D>();
-                    for (int i = IdInfoList.Count - 1; i >= 0; --i)
+                    if (DateTime.Now.Subtract(LastDistanceWarning).TotalSeconds > DistanceWarningCooldown)
                     {
-                        if (IdInfoList.Last().Timestamp.Subtract(IdInfoList[i].Timestamp).TotalSeconds > 1)
+                        Dictionary<string, Point3D> locations = new Dictionary<string, Point3D>();
+                        for (int i = IdInfoList.Count - 1; i >= 0; --i)
                         {
-                            break;
-                        }
-                        var cur = IdInfoList[i];
-                        if (cur.NextMatch != null)
-                        {
-                            continue;
-                        }
-                        foreach (var kv in locations)
-                        {
-                            if (PUtil.Distance(kv.Value, cur.Position) < SocialDistance)
+                            if (IdInfoList.Last().Timestamp.Subtract(IdInfoList[i].Timestamp).TotalSeconds > 1)
                             {
-                                manager.SendText(TopicToBazaar, "multimodal:true;%;identity:all;%;pose:too_close");
-                                Console.WriteLine($"{kv.Key} is too close to {cur.TrueIdentity}! Distance:{PUtil.Distance(kv.Value, cur.Position)}");
-                                Console.WriteLine("Send message to Bazaar: multimodal:true;%;identity:all;%;pose:too_close");
+                                break;
                             }
+                            var cur = IdInfoList[i];
+                            if (cur.NextMatch != null)
+                            {
+                                continue;
+                            }
+                            foreach (var kv in locations)
+                            {
+                                if (PUtil.Distance(kv.Value, cur.Position) < SocialDistance)
+                                {
+                                    LastDistanceWarning = DateTime.Now;
+                                    manager.SendText(TopicToBazaar, "multimodal:true;%;identity:group;%;pose:too_close");
+                                    Console.WriteLine($"{kv.Key} is too close to {cur.TrueIdentity}! Distance:{PUtil.Distance(kv.Value, cur.Position)}");
+                                    Console.WriteLine("Send message to Bazaar: multimodal:true;%;identity:group;%;pose:too_close");
+                                }
+                            }
+                            locations.Add(cur.TrueIdentity, cur.Position);
                         }
-                        locations.Add(cur.TrueIdentity, cur.Position);
                     }
                 }
             }
