@@ -35,6 +35,8 @@
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
+        private const double SocialDistance = 183;
+
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -43,6 +45,7 @@
 
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
+        public static readonly object LocationLock = new object();
 
         public static DateTime LastLocSendTime = new DateTime();
 
@@ -52,11 +55,6 @@
         static void Main(string[] args)
         {
             SetConsole();
-            Point3D pa = new Point3D(1, 2, 0);
-            Point3D pb = new Point3D(-2, 1, 0);
-
-            Console.WriteLine(PUtil.IsVertical(pa, pb));
-
             if (Initialize())
             {
                 bool exit = false;
@@ -204,7 +202,6 @@
                         continue;
                     }
                     CameraSpacePoint p = mapper[j * KinectImageWidth + i];
-                    // Console.WriteLine($"({p.X}, {p.Y}, {p.Z})");
                     if (p.X + p.Y + p.Z < -1000000 || p.X + p.Y + p.Z > 1000000)
                     {
                         continue;
@@ -228,41 +225,89 @@
             }
         }
 
+        /*
+         * Process location information received from Realmodal.
+        */
         private static void ProcessLocation(byte[] b)
         {
-            /*
-            DateTime time = DateTime.Now;
-            if (time.Subtract(LastLocSendTime).TotalSeconds < 0.5)
+            lock (LocationLock)
             {
-                return;
-            }
-            LastLocSendTime = time;
-            */
-            string text = Encoding.ASCII.GetString(b);
-            string[] infos = text.Split(';');
-            int num = int.Parse(infos[0]);
-            long ts = long.Parse(infos[1]);
-            // Console.WriteLine("New message!");
-            // Console.WriteLine(DateTime.Now);
-            // Console.WriteLine(new DateTime(ts));
-            if (num >= 1)
-            {
-                for (int i = 2; i < infos.Length; ++i)
+                string text = Encoding.ASCII.GetString(b);
+                string[] infos = text.Split(';');
+                int num = int.Parse(infos[0]);
+                long ts = long.Parse(infos[1]);
+                if (num >= 1)
                 {
-                    // ProcessID(infos[i]);
-                    IdentityInfo info = IdentityInfo.Parse(ts, infos[i]);
-                    IdInfoList.Add(info);
-                    Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
-                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
-                    // manager.SendText(TopicToBazaar, $"multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
-                    Console.WriteLine($"Send location Location to Bazaar: multimodal:true;%;identity:{infos[i].Split('&')[0]};%;location:{infos[i].Split('&')[1]}");
-                }
+                    for (int i = 2; i < infos.Length; ++i)
+                    {
+                        // Construct identity information instance.
+                        IdentityInfo info = IdentityInfo.Parse(ts, infos[i]);
+                        
+                        // Discard invalid instance
+                        if (info.Position.IsZero())
+                        {
+                            continue;
+                        }
 
-                while (IdInfoList.Count > 0 && IdInfoList.Last().timestamp.Subtract(IdInfoList.First().timestamp).TotalSeconds > 10)
-                {
-                    IdInfoList.RemoveAt(0);
+                        // Find the identity information that could be the same person.
+                        IdentityInfo match = null;
+                        foreach (var id in IdInfoList)
+                        {
+                            if (info.SameAs(id))
+                            {
+                                match = id;
+                            }
+                        }
+                        if (match != null)
+                        {
+                            // Do clusterring.
+                            IdentityInfo.MakeLink(match, info);
+                        }
+                        else
+                        {
+                            // Build a new cluster.
+                            info.NewIdentity();
+                        }
+
+                        // Store the indentity information and send it to other module.
+                        IdInfoList.Add(info);
+                        Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
+                        manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{infos[i].Split('&')[1]}");
+                    }
+
+                    // Discard information long ago.
+                    while (IdInfoList.Count > 0 && IdInfoList.Last().Timestamp.Subtract(IdInfoList.First().Timestamp).TotalSeconds > 10)
+                    {
+                        IdentityInfo infoToRemove = IdInfoList[0];
+                        IdInfoList.RemoveAt(0);
+                        infoToRemove.Dispose();
+                    }
+
+                    // Detect whether there're two people that violate the social distancing.
+                    Dictionary<string, Point3D> locations = new Dictionary<string, Point3D>();
+                    for (int i = IdInfoList.Count - 1; i >= 0; --i)
+                    {
+                        if (IdInfoList.Last().Timestamp.Subtract(IdInfoList[i].Timestamp).TotalSeconds > 1)
+                        {
+                            break;
+                        }
+                        var cur = IdInfoList[i];
+                        if (cur.NextMatch != null)
+                        {
+                            continue;
+                        }
+                        foreach (var kv in locations)
+                        {
+                            if (PUtil.Distance(kv.Value, cur.Position) < SocialDistance)
+                            {
+                                manager.SendText(TopicToBazaar, "multimodal:true;%;identity:all;%;pose:too_close");
+                                Console.WriteLine($"{kv.Key} is too close to {cur.TrueIdentity}! Distance:{PUtil.Distance(kv.Value, cur.Position)}");
+                                Console.WriteLine("Send message to Bazaar: multimodal:true;%;identity:all;%;pose:too_close");
+                            }
+                        }
+                        locations.Add(cur.TrueIdentity, cur.Position);
+                    }
                 }
-                Console.WriteLine(IdInfoList.Count);
             }
         }
 
@@ -378,7 +423,7 @@
             {
                 if (IdInfoList != null && IdInfoList.Count > 0)
                 {
-                    String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.First().identity};%;speech:{result.Text}";
+                    String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.First().Identity};%;speech:{result.Text}";
                     Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
                     manager.SendText(TopicToBazaar, messageToBazaar);
                 }

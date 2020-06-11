@@ -8,19 +8,35 @@ namespace CMU.Smartlab.Identity
 {
     public class IdentityInfo: IComparable
     {
-        public DateTime timestamp 
+        private static int ClusterNum = 0;
+
+        public DateTime Timestamp 
         {
             get; set;
         }
 
-        public String identity
+        public String Identity
         {
             get; set;
         }
             
-        Point3D position
+        public Point3D Position
         {
             get; set;
+        }
+
+        private string ClusterName;
+
+        public string TrueIdentity
+        {
+            get
+            {
+                return this.ClusterName;
+            }
+            private set
+            {
+                this.ClusterName = value;
+            }
         }
 
         public IdentityInfo()
@@ -28,11 +44,16 @@ namespace CMU.Smartlab.Identity
 
         }
 
+        public IdentityInfo LastMatch;
+        public IdentityInfo NextMatch;
+
         public IdentityInfo(DateTime timestamp, String identity, Point3D position)
         {
-            this.timestamp = timestamp;
-            this.identity = identity;
-            this.position = position;
+            this.Timestamp = timestamp;
+            this.Identity = identity;
+            this.Position = position;
+            this.LastMatch = null;
+            this.NextMatch = null;
         }
 
         public static IdentityInfo Parse(long timestamp, string info)
@@ -46,9 +67,65 @@ namespace CMU.Smartlab.Identity
             return new IdentityInfo(new DateTime(timestamp), id, new Point3D(x, y, z));
         }
 
+        public static void MakeLink(IdentityInfo id1, IdentityInfo id2)
+        {
+            while (id1.NextMatch != null)
+            {
+                id1 = id1.NextMatch;
+            }
+            while (id2.LastMatch != null)
+            {
+                id2 = id2.LastMatch;
+            }
+            id1.NextMatch = id2;
+            id2.LastMatch = id1;
+            id2.ClusterName = id1.TrueIdentity;
+        }
+
         public int CompareTo(object obj)
         {
-            return timestamp.CompareTo(obj);
+            return Timestamp.CompareTo(obj);
+        }
+
+        public void Dispose()
+        {
+            if (this.LastMatch != null)
+            {
+                this.LastMatch.NextMatch = null;
+                this.LastMatch = null;
+            }
+            if (this.NextMatch != null)
+            {
+                this.NextMatch.LastMatch = null;
+                this.NextMatch = null;
+            }
+        }
+
+        public void NewIdentity()
+        {
+            this.ClusterName = $"Person_{ClusterNum}";
+            ClusterNum += 1;
+        }
+
+        public bool SameAs(IdentityInfo another)
+        {
+            if (this.Identity.Equals(another.Identity))
+            {
+                return true;
+            }
+            else if (this.Timestamp.Subtract(another.Timestamp).TotalSeconds < 0.5 && PUtil.Distance(this.Position, another.Position) < 20)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        ~IdentityInfo()
+        {
+            this.Dispose();
         }
     }
 }
