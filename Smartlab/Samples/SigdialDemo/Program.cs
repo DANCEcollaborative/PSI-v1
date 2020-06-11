@@ -37,6 +37,7 @@
 
         private const double SocialDistance = 183;
         public const double DistanceWarningCooldown = 30.0;
+        public const double NVBGCooldown = 5.0;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -49,6 +50,7 @@
 
         public static DateTime LastLocSendTime = new DateTime();
         public static DateTime LastDistanceWarning = new DateTime();
+        public static DateTime LastNVBGTime = new DateTime();
 
         public static List<IdentityInfo> IdInfoList;
         public static SortedList<DateTime, CameraSpacePoint[]> KinectMappingBuffer;
@@ -272,8 +274,14 @@
 
                         // Store the indentity information and send it to other module.
                         IdInfoList.Add(info);
-                        Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
-                        manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{infos[i].Split('&')[1]}");
+                        Console.WriteLine($"Recieved location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
+                        if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldown)
+                        {
+                            Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
+                            manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{infos[i].Split('&')[1]}");
+                            LastNVBGTime = DateTime.Now;
+                        }
+
                     }
 
                     // Discard information long ago.
