@@ -62,6 +62,7 @@
         public static List<String> AudioSourceList;
 
         public static CameraInfo KinectInfo;
+        public static CameraInfo VhtInfo;
 
         static void Main(string[] args)
         {
@@ -141,6 +142,13 @@
                 dir_y: null,
                 dir_z: new Point3D(357.1, 319.2, 19.08)
             );
+            VhtInfo = new CameraInfo(
+                location: new Point3D(-26.67, 93.98, 104.78),
+                dir_x: new Point3D(0.0, 1.0, 0.0),
+                dir_y: null,
+                dir_z: new Point3D(1.0, 0.0, 0.0)
+                ); 
+
             IdHead = new Dictionary<string, IdentityInfo>();
             IdTail = new Dictionary<string, IdentityInfo>();
             manager = new CommunicationManager();
@@ -234,7 +242,7 @@
             }
             if (valid > 0)
             {
-                Point3D to_send = new Point3D(result.X / valid, result.Y / valid, result.Z / valid);
+                Point3D to_send = new Point3D(result.X / valid, result.Y / valid, result.Z / valid)*100;
                 to_send = KinectInfo.Cam2World(to_send);
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{to_send.x};{to_send.y};{to_send.z}");
                 //Console.WriteLine($"Answering Query: {ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
@@ -314,11 +322,13 @@
                         // Store the inden2tity information and send it to other module.
                         IdInfoList.Add(info);
                     }
-                    Console.WriteLine($"Recieved location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
+                    //Console.WriteLine($"Recieved location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
                     if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldown)
                     {
-                        Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
-                        manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{infos[i].Split('&')[1]}");
+                        Point3D pos2send = IdInfoList?.Last().Position;
+                        pos2send = VhtInfo.World2Cam(pos2send);
+                        Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
+                        manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
                         LastNVBGTime = DateTime.Now;
                     }
 
@@ -362,6 +372,7 @@
                                 manager.SendText(TopicToBazaar, "multimodal:true;%;identity:group;%;pose:too_close");
                                 Console.WriteLine($"{kv2.Key} is too close to {cur.TrueIdentity}! Distance:{PUtil.Distance(kv2.Value, cur.Position)}");
                                 Console.WriteLine("Send message to Bazaar: multimodal:true;%;identity:group;%;pose:too_close");
+                                break;
                             }
                         }
                         locations.Add(cur.TrueIdentity, cur.Position);
