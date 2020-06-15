@@ -36,8 +36,8 @@
         private const int KinectImageHeight = 1080;
 
         private const double SocialDistance = 183;
-        public const double DistanceWarningCooldown = 30.0;
-        public const double NVBGCooldown = 5.0;
+        private const double DistanceWarningCooldown = 30.0;
+        private const double NVBGCooldown = 5.0;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -47,13 +47,21 @@
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
         public static readonly object LocationLock = new object();
+        public static readonly object AudioSourceLock = new object();
+
+        public static volatile bool AudioSourceFlag = true;
 
         public static DateTime LastLocSendTime = new DateTime();
         public static DateTime LastDistanceWarning = new DateTime();
         public static DateTime LastNVBGTime = new DateTime();
 
         public static List<IdentityInfo> IdInfoList;
+        public static Dictionary<string, IdentityInfo> IdHead;
+        public static Dictionary<string, IdentityInfo> IdTail;
         public static SortedList<DateTime, CameraSpacePoint[]> KinectMappingBuffer;
+        public static List<String> AudioSourceList;
+
+        public static CameraInfo KinectInfo;
 
         static void Main(string[] args)
         {
@@ -125,11 +133,20 @@
                 return false;
             }
             IdInfoList = new List<IdentityInfo>();
+            KinectMappingBuffer = new SortedList<DateTime, CameraSpacePoint[]>();
+            AudioSourceList = new List<string>();
+            KinectInfo = new CameraInfo(
+                Point3D.Zero(),
+                dir_x: new Point3D(1, 0, 0),
+                dir_y: null,
+                dir_z: new Point3D(0, 0, 1)
+            );
+            IdHead = new Dictionary<string, IdentityInfo>();
+            IdTail = new Dictionary<string, IdentityInfo>();
             manager = new CommunicationManager();
             manager.subscribe(TopicFromPython, ProcessLocation);
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
-            KinectMappingBuffer = new SortedList<DateTime, CameraSpacePoint[]>();
             return true;
         }
 
@@ -217,8 +234,9 @@
             }
             if (valid > 0)
             {
-                // CameraSpacePoint p = mapper[real_y * KinectImageWidth + real_x];
-                manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
+                Point3D to_send = new Point3D(result.X / valid, result.Y / valid, result.Z / valid);
+                to_send = KinectInfo.Cam2World(to_send);
+                manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{to_send.x};{to_send.y};{to_send.z}");
                 //Console.WriteLine($"Answering Query: {ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
             }
             else
@@ -233,92 +251,120 @@
         */
         private static void ProcessLocation(byte[] b)
         {
-            lock (LocationLock)
+            string text = Encoding.ASCII.GetString(b);
+            string[] infos = text.Split(';');
+            int num = int.Parse(infos[0]);
+            long ts = long.Parse(infos[1]);
+            if (num >= 1)
             {
-                string text = Encoding.ASCII.GetString(b);
-                string[] infos = text.Split(';');
-                int num = int.Parse(infos[0]);
-                long ts = long.Parse(infos[1]);
-                if (num >= 1)
+                for (int i = 2; i < infos.Length; ++i)
                 {
-                    for (int i = 2; i < infos.Length; ++i)
-                    {
-                        // Construct identity information instance.
-                        IdentityInfo info = IdentityInfo.Parse(ts, infos[i]);
+                    // Construct identity information instance.
+                    IdentityInfo info = IdentityInfo.Parse(ts, infos[i]);
                         
-                        // Discard invalid instance
-                        if (info.Position.IsZero())
-                        {
-                            continue;
-                        }
+                    // Discard invalid instance
+                    if (info.Position.IsZero())
+                    {
+                        continue;
+                    }
 
-                        // Find the identity information that could be the same person.
-                        IdentityInfo match = null;
-                        foreach (var id in IdInfoList)
+                    // Find the identity information that could be the same person.
+                    IdentityInfo match = null;
+                    foreach (var kv in IdTail)
+                    {
+                        var id = kv.Value;
+                        while (id != null)
                         {
-                            if (info.SameAs(id))
+                            int flag = info.SameAs(id);
+                            if (flag == 1)
                             {
                                 match = id;
+                                break;
+                            }
+                            else if (flag == -1)
+                            {
+                                break;
+                            }
+                            else
+                            {
+                                id = id.LastMatch;
                             }
                         }
-                        if (match != null)
+                        if (!(match is null))
+                        {
+                            break;
+                        }
+                    }
+
+                    lock (AudioSourceLock)
+                    {
+                        if (!(match is null))
                         {
                             // Do clusterring.
                             IdentityInfo.MakeLink(match, info);
+                            IdTail[match.TrueIdentity] = info;
                         }
                         else
                         {
                             // Build a new cluster.
                             info.NewIdentity();
+                            IdHead[info.TrueIdentity] = info;
+                            IdTail[info.TrueIdentity] = info;
                         }
-
-                        // Store the indentity information and send it to other module.
+                        // Store the inden2tity information and send it to other module.
                         IdInfoList.Add(info);
-                        Console.WriteLine($"Recieved location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
-                        if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldown)
-                        {
-                            Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
-                            manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{infos[i].Split('&')[1]}");
-                            LastNVBGTime = DateTime.Now;
-                        }
-
+                    }
+                    Console.WriteLine($"Recieved location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
+                    if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldown)
+                    {
+                        Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
+                        manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{infos[i].Split('&')[1]}");
+                        LastNVBGTime = DateTime.Now;
                     }
 
-                    // Discard information long ago.
-                    while (IdInfoList.Count > 0 && IdInfoList.Last().Timestamp.Subtract(IdInfoList.First().Timestamp).TotalSeconds > 10)
+                }
+
+                // Discard information long ago.
+                lock (AudioSourceLock)
+                {
+                    while (IdInfoList.Count > 0 && IdInfoList.Last().Timestamp.Subtract(IdInfoList.First().Timestamp).TotalSeconds > 20)
                     {
                         IdentityInfo infoToRemove = IdInfoList[0];
                         IdInfoList.RemoveAt(0);
+                        if (!(infoToRemove.NextMatch is null))
+                        {
+                            IdHead[infoToRemove.TrueIdentity] = infoToRemove.NextMatch;
+                        }
+                        else
+                        {
+                            IdHead.Remove(infoToRemove.TrueIdentity);
+                        }
                         infoToRemove.Dispose();
                     }
+                }
 
-                    // Detect whether there're two people that violate the social distancing.
-                    if (DateTime.Now.Subtract(LastDistanceWarning).TotalSeconds > DistanceWarningCooldown)
+                // Detect whether there're two people that violate the social distancing.
+                if (DateTime.Now.Subtract(LastDistanceWarning).TotalSeconds > DistanceWarningCooldown)
+                {
+                    Dictionary<string, Point3D> locations = new Dictionary<string, Point3D>();
+                    foreach (var kv in IdTail)
                     {
-                        Dictionary<string, Point3D> locations = new Dictionary<string, Point3D>();
-                        for (int i = IdInfoList.Count - 1; i >= 0; --i)
+                        if (IdInfoList.Last().Timestamp.Subtract(kv.Value.Timestamp).TotalSeconds > 1)
                         {
-                            if (IdInfoList.Last().Timestamp.Subtract(IdInfoList[i].Timestamp).TotalSeconds > 1)
-                            {
-                                break;
-                            }
-                            var cur = IdInfoList[i];
-                            if (cur.NextMatch != null)
-                            {
-                                continue;
-                            }
-                            foreach (var kv in locations)
-                            {
-                                if (PUtil.Distance(kv.Value, cur.Position) < SocialDistance)
-                                {
-                                    LastDistanceWarning = DateTime.Now;
-                                    manager.SendText(TopicToBazaar, "multimodal:true;%;identity:group;%;pose:too_close");
-                                    Console.WriteLine($"{kv.Key} is too close to {cur.TrueIdentity}! Distance:{PUtil.Distance(kv.Value, cur.Position)}");
-                                    Console.WriteLine("Send message to Bazaar: multimodal:true;%;identity:group;%;pose:too_close");
-                                }
-                            }
-                            locations.Add(cur.TrueIdentity, cur.Position);
+                            break;
                         }
+                        var cur = kv.Value;
+                        foreach (var kv2 in locations)
+                        {
+                            if (PUtil.Distance(kv2.Value, cur.Position) < SocialDistance)
+                            {
+                                LastDistanceWarning = DateTime.Now;
+                                manager.SendText(TopicToBazaar, "multimodal:true;%;identity:group;%;pose:too_close");
+                                Console.WriteLine($"{kv2.Key} is too close to {cur.TrueIdentity}! Distance:{PUtil.Distance(kv2.Value, cur.Position)}");
+                                Console.WriteLine("Send message to Bazaar: multimodal:true;%;identity:group;%;pose:too_close");
+                            }
+                        }
+                        locations.Add(cur.TrueIdentity, cur.Position);
                     }
                 }
             }
@@ -353,13 +399,16 @@
                         OutputRGBD = true,
                         OutputColorToCameraMapping = true,
                         OutputBodies = false,
+                        OutputAudio = true,
                     };
                     var kinectSensor = new Microsoft.Psi.Kinect.KinectSensor(pipeline, kinectSensorConfig);
                     // MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
                     // var kinectRGBD = kinectSensor.RGBDImage;
                     var kinectColor = kinectSensor.ColorImage;
                     var kinectMapping = kinectSensor.ColorToCameraMapper;
+                    var kinectAudio = kinectSensor.AudioBeamInfo.Where(result => result.Confidence > 0.7);
                     kinectMapping.Do(AddNewMapper);
+                    kinectAudio.Do(FindAudioSource);
 
                     // var kinectDepth = kinectSensor.DepthImage;
                     // var decoded = video.Out.Decode().Out;
@@ -418,6 +467,68 @@
             }
         }
 
+        private static void FindAudioSource(KinectAudioBeamInfo audioInfo, Envelope envelope)
+        {
+            // System.Threading.Thread.Sleep(1000);
+            DateTime before = DateTime.Now;
+            AudioSourceFlag = false;
+            double angle = audioInfo.Angle;
+            Line3D soundPlane = new Line3D(
+                KinectInfo.Cam2World(new Point3D(0, 0, 0)),
+                KinectInfo.Cam2World(new Point3D(Math.Cos(angle), 0, -Math.Sin(angle))) - KinectInfo.Cam2World(new Point3D(0, 0, 0))
+            );
+            if (IdInfoList.Count > 0)
+            {
+                double nearestDis = 10000;
+                string nearestID = null;
+                lock (AudioSourceLock)
+                {
+                    foreach (var kv in IdTail)
+                    {
+                        var p = kv.Value;
+                        while (p.LastMatch != null)
+                        {
+                            if (p.LastMatch.Timestamp < envelope.OriginatingTime)
+                            {
+                                break;
+                            }
+                            p = p.LastMatch;
+                        }
+                        double dis = 100000;
+                        Console.WriteLine(p.Timestamp);
+                        Console.WriteLine(envelope.OriginatingTime);
+                        if (Math.Abs(p.Timestamp.Subtract(envelope.OriginatingTime).TotalSeconds) < 1)
+                        {
+                            double temp = (p.Position - soundPlane.p0) * soundPlane.t / soundPlane.t.Length();
+                            if (temp < dis)
+                            {
+                                dis = temp;
+                            }
+                        }
+                        if (p.LastMatch != null && Math.Abs(p.LastMatch.Timestamp.Subtract(envelope.OriginatingTime).TotalSeconds) < 1)
+                        {
+                            double temp = (p.LastMatch.Position - soundPlane.p0) * soundPlane.t / soundPlane.t.Length();
+                            if (temp < dis)
+                            {
+                                dis = temp;
+                            }
+                        }
+                        if (dis < nearestDis)
+                        {
+                            nearestID = p.TrueIdentity;
+                            nearestDis = dis;
+                        }
+                    }
+                    if (nearestID != null)
+                    {
+                        AudioSourceList.Add(nearestID);
+                    }
+                }
+            }
+            DateTime after = DateTime.Now;
+            Console.WriteLine(after.Subtract(before).TotalMilliseconds);
+        }
+
         private static void AddNewMapper(CameraSpacePoint[] mapper, Envelope envelope)
         {
             var time = envelope.OriginatingTime;
@@ -434,9 +545,43 @@
             String speech = result.Text;
             if (speech != "")
             {
+                if (AudioSourceList.Count > 0)
+                {
+                    Dictionary<string, int> temp = new Dictionary<string, int>();
+                    foreach (var name in AudioSourceList)
+                    {
+                        if (temp.ContainsKey(name))
+                        {
+                            temp[name] += 1;
+                        }
+                        else
+                        {
+                            temp[name] = 1;
+                        }
+                    }
+                    int max = 0;
+                    string id = null;
+                    foreach (var kv in temp)
+                    {
+                        if (kv.Value > max)
+                        {
+                            max = kv.Value;
+                            id = kv.Key;
+                        }
+                    }
+                    Console.WriteLine($"{max}, {id}");
+                    if (id != null)
+                    {
+                        AudioSourceList.Clear();
+                        String messageToBazaar = $"multimodal:true;%;identity:{id};%;speech:{result.Text}";
+                        Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                        manager.SendText(TopicToBazaar, messageToBazaar);
+                        return;
+                    }
+                }
                 if (IdInfoList != null && IdInfoList.Count > 0)
                 {
-                    String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.First().Identity};%;speech:{result.Text}";
+                    String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.Last().TrueIdentity};%;speech:{result.Text}";
                     Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
                     manager.SendText(TopicToBazaar, messageToBazaar);
                 }
@@ -448,8 +593,6 @@
                     Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
                     manager.SendText(TopicToBazaar, messageToBazaar);
                 }
-
-
             }
         }
 

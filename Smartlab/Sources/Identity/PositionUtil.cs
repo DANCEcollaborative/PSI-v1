@@ -238,7 +238,7 @@ namespace CMU.Smartlab.Identity
 
         public static Point3D operator /(Point3D p1, double lambda)
         {
-            return p1 / lambda;
+            return p1 * (1.0 / lambda);
         }
 
         public static bool operator ==(Point3D p1, Point3D p2)

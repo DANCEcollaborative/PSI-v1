@@ -107,19 +107,23 @@ namespace CMU.Smartlab.Identity
             ClusterNum += 1;
         }
 
-        public bool SameAs(IdentityInfo another)
+        public int SameAs(IdentityInfo another)
         {
-            if (this.Identity.Equals(another.Identity))
+            if (this.Timestamp.Subtract(another.Timestamp).TotalSeconds < 0.5 && PUtil.Distance(this.Position, another.Position) > 100)
             {
-                return true;
+                return -1;
+            }
+            else if (this.Identity.Equals(another.Identity))
+            {
+                return 1;
             }
             else if (this.Timestamp.Subtract(another.Timestamp).TotalSeconds < 0.5 && PUtil.Distance(this.Position, another.Position) < 20)
             {
-                return true;
+                return 1;
             }
             else
             {
-                return false;
+                return 0;
             }
         }
 
