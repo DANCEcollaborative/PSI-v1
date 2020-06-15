@@ -136,10 +136,10 @@
             KinectMappingBuffer = new SortedList<DateTime, CameraSpacePoint[]>();
             AudioSourceList = new List<string>();
             KinectInfo = new CameraInfo(
-                Point3D.Zero(),
-                dir_x: new Point3D(1, 0, 0),
+                location: new Point3D(29.2, 12.7, 125.7),
+                dir_x: new Point3D(-17.27, 19.26, 1.01284),
                 dir_y: null,
-                dir_z: new Point3D(0, 0, 1)
+                dir_z: new Point3D(357.1, 319.2, 19.08)
             );
             IdHead = new Dictionary<string, IdentityInfo>();
             IdTail = new Dictionary<string, IdentityInfo>();
@@ -160,7 +160,7 @@
             double x = double.Parse(infos[1]);
             double y = double.Parse(infos[2]);
             //Console.WriteLine($"Parsed: {ticks}, {x}, {y}");
-            if (KinectMappingBuffer.Count == 0)
+            if (KinectMappingBuffer is null || KinectMappingBuffer.Count == 0)
             {
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};null");
                 // Console.WriteLine($"Answering Query: {ticks};null");
@@ -470,7 +470,6 @@
         private static void FindAudioSource(KinectAudioBeamInfo audioInfo, Envelope envelope)
         {
             // System.Threading.Thread.Sleep(1000);
-            DateTime before = DateTime.Now;
             AudioSourceFlag = false;
             double angle = audioInfo.Angle;
             Line3D soundPlane = new Line3D(
@@ -495,8 +494,6 @@
                             p = p.LastMatch;
                         }
                         double dis = 100000;
-                        Console.WriteLine(p.Timestamp);
-                        Console.WriteLine(envelope.OriginatingTime);
                         if (Math.Abs(p.Timestamp.Subtract(envelope.OriginatingTime).TotalSeconds) < 1)
                         {
                             double temp = (p.Position - soundPlane.p0) * soundPlane.t / soundPlane.t.Length();
@@ -525,8 +522,6 @@
                     }
                 }
             }
-            DateTime after = DateTime.Now;
-            Console.WriteLine(after.Subtract(before).TotalMilliseconds);
         }
 
         private static void AddNewMapper(CameraSpacePoint[] mapper, Envelope envelope)
