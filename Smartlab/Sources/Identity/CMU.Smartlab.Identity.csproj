@@ -42,7 +42,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CameraInfo.cs" />
-    <Compile Include="VHTInfo.cs" />
     <Compile Include="IdentityInfo.cs" />
     <Compile Include="PositionUtil.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
