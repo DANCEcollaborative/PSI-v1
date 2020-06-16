@@ -38,7 +38,8 @@
 
         private const double SocialDistance = 183;
         private const double DistanceWarningCooldown = 30.0;
-        private const double NVBGCooldown = 5.0;
+        private const double NVBGCooldownLocation = 8.0;
+        private const double NVBGCooldownAudio =3.0;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -324,7 +325,7 @@
                         IdInfoList.Add(info);
                     }
                     //Console.WriteLine($"Recieved location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
-                    if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldown)
+                    if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldownLocation)
                     {
                         Point3D pos2send = IdInfoList?.Last().Position;
                         pos2send = VhtInfo.World2Cam(pos2send);
@@ -332,7 +333,6 @@
                         manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{info.TrueIdentity};%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
                         LastNVBGTime = DateTime.Now;
                     }
-
                 }
 
                 // Discard information long ago.
@@ -491,7 +491,7 @@
             if (IdInfoList.Count > 0)
             {
                 double nearestDis = 10000;
-                string nearestID = null;
+                IdentityInfo nearestID = null;
                 lock (AudioSourceLock)
                 {
                     foreach (var kv in IdTail)
@@ -524,15 +524,23 @@
                         }
                         if (dis < nearestDis)
                         {
-                            nearestID = p.TrueIdentity;
+                            nearestID = p;
                             nearestDis = dis;
                         }
                     }
                     Console.WriteLine(angle);
-                    Console.WriteLine($"{nearestID}: {nearestDis}");
+                    Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
                     if (nearestID != null)
                     {
-                        AudioSourceList.Add(nearestID);
+                        AudioSourceList.Add(nearestID.TrueIdentity);
+                        if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldownAudio)
+                        {
+                            Point3D pos2send = nearestID.Position;
+                            pos2send = VhtInfo.World2Cam(pos2send);
+                            Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:{nearestID.TrueIdentity}(Detected: {nearestID.Identity});%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
+                            manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:{nearestID.TrueIdentity};%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
+                            LastNVBGTime = DateTime.Now;
+                        }
                     }
                 }
             }
