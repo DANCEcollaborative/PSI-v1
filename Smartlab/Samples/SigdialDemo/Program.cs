@@ -528,10 +528,10 @@
                             nearestDis = dis;
                         }
                     }
-                    Console.WriteLine(angle);
-                    Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
                     if (nearestID != null)
                     {
+                        Console.WriteLine(angle);
+                        Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
                         AudioSourceList.Add(nearestID.TrueIdentity);
                         if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldownAudio)
                         {
