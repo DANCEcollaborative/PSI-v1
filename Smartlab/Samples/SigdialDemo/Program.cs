@@ -36,10 +36,10 @@
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
-        private const double SocialDistance = 183;
+        private const double SocialDistance = 150;
         private const double DistanceWarningCooldown = 30.0;
         private const double NVBGCooldownLocation = 8.0;
-        private const double NVBGCooldownAudio =3.0;
+        private const double NVBGCooldownAudio =1.0;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -56,6 +56,7 @@
         public static DateTime LastLocSendTime = new DateTime();
         public static DateTime LastDistanceWarning = new DateTime();
         public static DateTime LastNVBGTime = new DateTime();
+        public static DateTime LastAudioSourceTime = new DateTime();
 
         public static List<IdentityInfo> IdInfoList;
         public static Dictionary<string, IdentityInfo> IdHead;
@@ -482,6 +483,11 @@
         private static void FindAudioSource(KinectAudioBeamInfo audioInfo, Envelope envelope)
         {
             // System.Threading.Thread.Sleep(1000);
+            if (DateTime.Now.Subtract(LastAudioSourceTime).TotalSeconds < 0.2) 
+            {
+                return;
+            }
+            LastAudioSourceTime = DateTime.Now;
             AudioSourceFlag = false;
             double angle = audioInfo.Angle;
             Line3D soundPlane = new Line3D(
@@ -530,8 +536,8 @@
                     }
                     if (nearestID != null)
                     {
-                        Console.WriteLine(angle);
-                        Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
+                       //  Console.WriteLine(angle);
+                        // Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
                         AudioSourceList.Add(nearestID.TrueIdentity);
                         if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldownAudio)
                         {

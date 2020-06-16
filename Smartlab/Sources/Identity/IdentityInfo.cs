@@ -109,15 +109,7 @@ namespace CMU.Smartlab.Identity
 
         public int SameAs(IdentityInfo another)
         {
-            if (this.Timestamp.Subtract(another.Timestamp).TotalSeconds < 0.5 && PUtil.Distance(this.Position, another.Position) > 100)
-            {
-                return -1;
-            }
-            else if (this.Identity.Equals(another.Identity))
-            {
-                return 1;
-            }
-            else if (this.Timestamp.Subtract(another.Timestamp).TotalSeconds < 0.5 && PUtil.Distance(this.Position, another.Position) < 20)
+            if (this.Identity.Equals(another.Identity))
             {
                 return 1;
             }
