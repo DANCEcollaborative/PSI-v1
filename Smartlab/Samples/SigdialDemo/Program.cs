@@ -17,6 +17,7 @@
     using Microsoft.Psi.Speech;
     using Microsoft.Psi.Kinect;
     using Apache.NMS;
+    using Apache.NMS.ActiveMQ.Transport.Discovery;
 
     class Program
     {
@@ -505,17 +506,17 @@
                             p = p.LastMatch;
                         }
                         double dis = 100000;
-                        if (Math.Abs(p.Timestamp.Subtract(envelope.OriginatingTime).TotalSeconds) < 1)
+                        if (Math.Abs(p.Timestamp.Subtract(envelope.OriginatingTime).TotalSeconds) < 8)
                         {
-                            double temp = (p.Position - soundPlane.p0) * soundPlane.t / soundPlane.t.Length();
+                            double temp = Math.Abs((p.Position - soundPlane.p0) * soundPlane.t / soundPlane.t.Length());
                             if (temp < dis)
                             {
                                 dis = temp;
                             }
                         }
-                        if (p.LastMatch != null && Math.Abs(p.LastMatch.Timestamp.Subtract(envelope.OriginatingTime).TotalSeconds) < 1)
+                        if (p.LastMatch != null && Math.Abs(p.LastMatch.Timestamp.Subtract(envelope.OriginatingTime).TotalSeconds) < 8)
                         {
-                            double temp = (p.LastMatch.Position - soundPlane.p0) * soundPlane.t / soundPlane.t.Length();
+                            double temp = Math.Abs((p.LastMatch.Position - soundPlane.p0) * soundPlane.t / soundPlane.t.Length());
                             if (temp < dis)
                             {
                                 dis = temp;
@@ -527,6 +528,8 @@
                             nearestDis = dis;
                         }
                     }
+                    Console.WriteLine(angle);
+                    Console.WriteLine($"{nearestID}: {nearestDis}");
                     if (nearestID != null)
                     {
                         AudioSourceList.Add(nearestID);
