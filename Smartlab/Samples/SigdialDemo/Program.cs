@@ -385,10 +385,46 @@
 
         private static void ProcessText(String s)
         {
+            string warmid = null;
+            string coolid = null;
+            foreach(var kv in IdTail)
+            {
+                if (kv.Value.Identity == "colorwarm")
+                {
+                    warmid = kv.Key;
+                }
+                if (kv.Value.Identity == "colorcool")
+                {
+                    coolid = kv.Key;
+                }
+            }
+            Point3D poswarm = IdTail[warmid].Position;
+            Point3D poscool = IdTail[coolid].Position;
             if (s != null)
             {
-                Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
-                manager.SendText(TopicToVHText, s);
+                if (s.Contains("navigator"))
+                {
+                    Console.WriteLine($"Send hard-code navigator message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poscool.x}:{poscool.y}:{poscool.z}");
+                    manager.SendText(TopicToVHText, s);
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:navigator;%;location:{poscool.x}:{poscool.y}:{poscool.z}");
+                }
+                else if(s.Contains("driver"))
+                {
+                    Console.WriteLine($"Send hard-code driver message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poswarm.x}:{poswarm.y}:{poswarm.z}");
+                    manager.SendText(TopicToVHText, s);
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:navigator;%;location:{poswarm.x}:{poswarm.y}:{poswarm.z}");
+                }
+                else if(s.Contains("group"))
+                {
+                    Console.WriteLine($"Send hard-code group message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{PUtil.Mid(poscool, poswarm).x}:{PUtil.Mid(poscool, poswarm).y}:{PUtil.Mid(poscool, poswarm).z}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:navigator;%;location:{PUtil.Mid(poscool, poswarm).x}:{PUtil.Mid(poscool, poswarm).y}:{PUtil.Mid(poscool, poswarm).z}");
+                    manager.SendText(TopicToVHText, s);
+                }
+                else
+                {
+                    Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
+                    manager.SendText(TopicToVHText, s);
+                }
             }
         }
 
