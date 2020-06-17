@@ -49,7 +49,7 @@
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
         public static readonly object LocationLock = new object();
-        public static readonly object AudioSourceLock = new object();
+        public static readonly object IdentityInfoLock = new object();
 
         public static volatile bool AudioSourceFlag = true;
 
@@ -307,7 +307,7 @@
                         }
                     }
 
-                    lock (AudioSourceLock)
+                    lock (IdentityInfoLock)
                     {
                         if (!(match is null))
                         {
@@ -337,7 +337,7 @@
                 }
 
                 // Discard information long ago.
-                lock (AudioSourceLock)
+                lock (IdentityInfoLock)
                 {
                     while (IdInfoList.Count > 0 && IdInfoList.Last().Timestamp.Subtract(IdInfoList.First().Timestamp).TotalSeconds > 20)
                     {
@@ -387,21 +387,65 @@
         {
             string warmid = null;
             string coolid = null;
-            foreach(var kv in IdTail)
+            Point3D poswarm = null;
+            Point3D poscool = null;
+            lock (IdentityInfoLock)
             {
-                if (kv.Value.Identity == "colorwarm")
+                foreach (var kv in IdTail)
                 {
-                    warmid = kv.Key;
+                    if (kv.Value.Identity.ToLower().Contains("warm"))
+                    {
+                        warmid = kv.Key;
+                    }
+                    if (kv.Value.Identity.ToLower().Contains("cool"))
+                    {
+                        coolid = kv.Key;
+                    }
                 }
-                if (kv.Value.Identity == "colorcool")
+                if (warmid != null)
                 {
-                    coolid = kv.Key;
+                    poswarm = IdTail[warmid].Position;
+                }
+                if (coolid != null)
+                {
+                    poscool = IdTail[coolid].Position;
                 }
             }
-            Point3D poswarm = IdTail[warmid].Position;
-            Point3D poscool = IdTail[coolid].Position;
+
             if (s != null)
             {
+                Point3D pos2send = null;
+                if (s.Contains("identity:navigator") && (poscool != null))
+                {
+                    pos2send = poscool;
+                }
+                else if (s.Contains("identitiy:driver") && (poswarm != null))
+                {
+                    pos2send = poswarm;
+                }
+                else
+                {
+                    if ((poscool != null) && (poswarm != null)) 
+                    {
+                        pos2send = PUtil.Mid(poscool, poswarm);
+                    }
+                    else if (poscool != null)
+                    {
+                        pos2send = poscool;
+                    }
+                    else if (poswarm != null)
+                    {
+                        pos2send = poswarm;
+                    }
+                }
+                if (pos2send != null)
+                {
+                    Console.WriteLine($"Send hard-code navigator message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poscool.x}:{poscool.y}:{poscool.z}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
+                }
+                manager.SendText(TopicToVHText, s);
+
+                /*
                 if (s.Contains("navigator"))
                 {
                     Console.WriteLine($"Send hard-code navigator message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poscool.x}:{poscool.y}:{poscool.z}");
@@ -425,6 +469,7 @@
                     Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
                     manager.SendText(TopicToVHText, s);
                 }
+                */
             }
         }
 
@@ -534,7 +579,7 @@
             {
                 double nearestDis = 10000;
                 IdentityInfo nearestID = null;
-                lock (AudioSourceLock)
+                lock (IdentityInfoLock)
                 {
                     foreach (var kv in IdTail)
                     {
