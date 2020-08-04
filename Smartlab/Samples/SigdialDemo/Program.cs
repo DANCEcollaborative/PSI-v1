@@ -533,6 +533,7 @@
                 var vad = new SystemVoiceActivityDetector(pipeline);
                 audio.PipeTo(vad);
 
+                String[] Languages = { "en-us", "zh-CN" };
                 var recognizer = new AzureSpeechRecognizer(pipeline, new AzureSpeechRecognizerConfiguration()
                 {
                     SubscriptionKey = Program.AzureSubscriptionKey,

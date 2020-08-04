@@ -20,6 +20,7 @@ namespace Microsoft.Psi.CognitiveServices.Speech
         public AzureSpeechRecognizerConfiguration()
         {
             this.Language = "en-us";
+            this.Languages = null;
             this.SubscriptionKey = null; // This must be set to the key associated with your account
             this.Region = null; // This must be set to the region associated to the key
 
@@ -64,5 +65,13 @@ namespace Microsoft.Psi.CognitiveServices.Speech
         /// This is the region that is associated to the subscription key.
         /// </remarks>
         public string Region { get; set; }
+
+        /// <summary>
+        /// Gets or sets the languages.
+        /// </summary>
+        /// <remarks>
+        /// This is the languages that is associated to the subscription key.
+        /// </remarks>
+        public string[] Languages { get; set; }
     }
 }
