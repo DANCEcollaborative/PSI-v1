@@ -75,8 +75,6 @@ namespace Microsoft.Psi.CognitiveServices.Speech
         /// </summary>
         private bool fatalError;
 
-
-
         /// <summary>
         /// Initializes a new instance of the <see cref="AzureSpeechRecognizer"/> class.
         /// </summary>
