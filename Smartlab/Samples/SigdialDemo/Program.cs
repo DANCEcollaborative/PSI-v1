@@ -18,6 +18,8 @@
     using Microsoft.Psi.Kinect;
     using Apache.NMS;
     using Apache.NMS.ActiveMQ.Transport.Discovery;
+    using NetMQ;
+    using NetMQ.Sockets;
 
     class Program
     {
@@ -31,6 +33,9 @@
         private const string TopicFromBazaar = "Bazaar_PSI_Text";
         private const string TopicFromPython_QueryKinect = "Python_PSI_QueryKinect";
         private const string TopicToPython_AnswerKinect = "PSI_Python_AnswerKinect";
+
+        private const string TcpIP = "tcp://127.0.0.1:5555";
+
 
         private const int SendingImageWidth = 360;
         private const int KinectImageWidth = 1920;
@@ -591,24 +596,45 @@
                     {
                         AudioSourceList.Clear();
                         String messageToBazaar = $"multimodal:true;%;identity:{id};%;speech:{result.Text}";
-                        Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                        manager.SendText(TopicToBazaar, messageToBazaar);
+                        //Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                        using (var pubSocket = new PublisherSocket())
+                        {
+                            pubSocket.Options.SendHighWatermark = 1000;
+                            pubSocket.Bind(TcpIP);
+                            Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
+                            pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
+                        }
+                            //manager.SendText(TopicToBazaar, messageToBazaar);
                         return;
                     }
                 }
                 if (IdInfoList != null && IdInfoList.Count > 0)
                 {
                     String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.Last().TrueIdentity};%;speech:{result.Text}";
-                    Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                    manager.SendText(TopicToBazaar, messageToBazaar);
+                    //Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                   // manager.SendText(TopicToBazaar, messageToBazaar);
+                    using (var pubSocket = new PublisherSocket())
+                    {
+                        pubSocket.Options.SendHighWatermark = 1000;
+                        pubSocket.Bind(TcpIP);
+                        Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
+                        pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
+                    }
                 }
                 else
                 {
                     String name = getRandomName();
                     String messageToBazaar = $"multimodal:true;%;identity:{name};%;speech:{result.Text}";
                     //String location = getRandomLocation(); 
-                    Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
-                    manager.SendText(TopicToBazaar, messageToBazaar);
+                    using (var pubSocket = new PublisherSocket())
+                    {
+                        pubSocket.Options.SendHighWatermark = 1000;
+                        pubSocket.Bind(TcpIP);
+                        Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
+                        pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
+                    }
+                    //Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
+                    //manager.SendText(TopicToBazaar, messageToBazaar);
                 }
             }
         }
