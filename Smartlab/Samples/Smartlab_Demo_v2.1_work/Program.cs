@@ -41,7 +41,7 @@
         private static Dictionary<string, string[]> idTemp = new Dictionary<string, string[]>();
 
         private static CommunicationManager manager;
-        private static IdentityInfoProcess idProcess;
+        // private static IdentityInfoProcess idProcess;
 
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();

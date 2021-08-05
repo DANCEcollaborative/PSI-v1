@@ -34,7 +34,9 @@
         private const string TopicFromPython_QueryKinect = "Python_PSI_QueryKinect";
         private const string TopicToPython_AnswerKinect = "PSI_Python_AnswerKinect";
 
-        private const string TcpIP = "tcp://127.0.0.1:5555";
+        // private const string TcpIP = "tcp://127.0.0.1:5555";
+        private const string TcpIPSubscriber = "tcp://127.0.0.1:5555";
+        private const string TcpIPPublisher = "tcp://127.0.0.1:5556";
 
 
         private const int SendingImageWidth = 360;
@@ -163,8 +165,11 @@
             manager.subscribe(TopicFromPython, ProcessLocation);
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
-            netmqsubscriber = new NetMqSubscriber(TcpIP);
-            netmqsubscriber.RegisterSubscriber(TopicFromBazaar);
+            netmqsubscriber = new NetMqSubscriber(TcpIPSubscriber);
+            netmqsubscriber.RegisterSubscriber(TopicFromBazaar); 
+
+            netmqpublisher = new NetMqPublisher(TcpIPPublisher);
+            // netmqpublisher.RegisterSubscriber(TopicToBazaar);
             return true;
         }
 
@@ -601,12 +606,12 @@
                         String messageToBazaar = $"multimodal:true;%;identity:{id};%;speech:{result.Text}";
                         //Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
                         Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
-                        netmqpublisher = new NetMqPublisher(TcpIP);
+                        // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
                         netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                     /*    using (var pubSocket = new PublisherSocket())
                         {
                             pubSocket.Options.SendHighWatermark = 1000;
-                            pubSocket.Bind(TcpIP);
+                            pubSocket.Bind(TcpIPPublisher);
                             Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
                             pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
                         }*/
@@ -617,14 +622,14 @@
                 if (IdInfoList != null && IdInfoList.Count > 0)
                 {
                     String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.Last().TrueIdentity};%;speech:{result.Text}";
-                    //Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                    Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
                     // manager.SendText(TopicToBazaar, messageToBazaar);
-                    netmqpublisher = new NetMqPublisher(TcpIP);
+                    // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
                     netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                     /*using (var pubSocket = new PublisherSocket())
                     {
                         pubSocket.Options.SendHighWatermark = 1000;
-                        pubSocket.Bind(TcpIP);
+                        pubSocket.Bind(TcpIPPublisher);
                         Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
                         pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
                     }*/
@@ -634,12 +639,13 @@
                     String name = getRandomName();
                     String messageToBazaar = $"multimodal:true;%;identity:{name};%;speech:{result.Text}";
                     //String location = getRandomLocation(); 
-                    netmqpublisher = new NetMqPublisher(TcpIP);
+                    Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
+                    // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
                     netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                    /* using (var pubSocket = new PublisherSocket())
                     {
                         pubSocket.Options.SendHighWatermark = 1000;
-                        pubSocket.Bind(TcpIP);
+                        pubSocket.Bind(TcpIPPublisher);
                         Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
                         pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
                     }*/
