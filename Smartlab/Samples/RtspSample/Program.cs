@@ -44,8 +44,6 @@
                 {
                     case ConsoleKey.D1:
                         // Record video+audio to a store in the user's MyVideos folder
-                        var folder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-                        Console.WriteLine(folder);
                         RecordRtsp(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos));
                         break;
                     case ConsoleKey.Q:
@@ -61,7 +59,7 @@
         public static void RecordRtsp(string pathToStore)
         {
             // Create the pipeline object.
-            using (Pipeline pipeline = Pipeline.Create())
+            using (Pipeline pipeline = Pipeline.Create(true))
             {
                 // Register an event handler to catch pipeline errors
                 pipeline.PipelineExceptionNotHandled += Pipeline_PipelineException;
@@ -76,48 +74,40 @@
                 var serverUriPSIb = new Uri("rtsp://lorex5416b1.pc.cs.cmu.edu");
                 var credentialsPSIb = new NetworkCredential("admin", "54Lorex16");
                 RtspCapture webcamPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
-                /*
                 var serverUriB2 = new Uri("rtsp://lorex5416b2.pc.cs.cmu.edu");
-                var credentialsB2 = new NetworkCredential("admin", "admin");
-                MediaCaptureRtsp webcamB2 = new MediaCaptureRtsp(pipeline, serverUriB2, credentialsB2, true);
+                var credentialsB2 = new NetworkCredential("admin", "54Lorex16");
+                RtspCapture webcamB2 = new RtspCapture(pipeline, serverUriB2, credentialsB2, true);
                 var serverUriA1 = new Uri("rtsp://lorex5416a1.pc.cs.cmu.edu");
                 var credentialsA1 = new NetworkCredential("admin", "Lorex5416");
-                MediaCaptureRtsp webcamA1 = new MediaCaptureRtsp(pipeline, serverUriA1, credentialsA1, true);
+                RtspCapture webcamA1 = new RtspCapture(pipeline, serverUriA1, credentialsA1, true);
                 var serverUriA2 = new Uri("rtsp://lorex5416a2.pc.cs.cmu.edu");
-                var credentialsA2 = new NetworkCredential("admin", "admin");
-                MediaCaptureRtsp webcamA2 = new MediaCaptureRtsp(pipeline, serverUriA2, credentialsA2, true);
-                */
+                var credentialsA2 = new NetworkCredential("admin", "Lorex5416");
+                RtspCapture webcamA2 = new RtspCapture(pipeline, serverUriA2, credentialsA2, true);
 
                 // Create the AudioCapture component to capture audio from the default device in 16 kHz 1-channel
                 var audioInputPSIb = webcamPSIb.Audio;
-                /*
                 var audioInputB2 = webcamB2.Audio;
                 var audioInputA1 = webcamA1.Audio;
                 var audioInputA2 = webcamA2.Audio;
-                */
 
-                var imagesPSIb = webcamPSIb.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
-                /*
-                var imagesB2 = webcamB2.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
-                var imagesA1 = webcamA1.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
-                var imagesA2 = webcamA2.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
-                */
+                var imagesPSIb = webcamPSIb.Out.EncodeJpeg(90, DeliveryPolicy.Unlimited).Out;
+                var imagesB2 = webcamB2.Out.EncodeJpeg(90, DeliveryPolicy.Unlimited).Out;
+                var imagesA1 = webcamA1.Out.EncodeJpeg(90, DeliveryPolicy.Unlimited).Out;
+                var imagesA2 = webcamA2.Out.EncodeJpeg(90, DeliveryPolicy.Unlimited).Out;
 
                 // Attach the webcam's image output to the store. We will write the images to the store as compressed JPEGs.
-                Store.Write(imagesPSIb, "ImagePSIb", store, true, DeliveryPolicy.LatestMessage);
-                /*
-                Store.Write(imagesB2, "ImageB2", store, true, DeliveryPolicy.LatestMessage);
-                Store.Write(imagesA1, "ImageA1", store, true, DeliveryPolicy.LatestMessage);
-                Store.Write(imagesA2, "ImageA2", store, true, DeliveryPolicy.LatestMessage);
-                */
+                Store.Write(imagesPSIb, "ImageB1", store, true, DeliveryPolicy.Unlimited);
+                Store.Write(imagesB2, "ImageB2", store, true, DeliveryPolicy.Unlimited);
+                Store.Write(imagesA1, "ImageA1", store, true, DeliveryPolicy.Unlimited);
+                Store.Write(imagesA2, "ImageA2", store, true, DeliveryPolicy.Unlimited);
 
                 // Attach the audio input to the store
-                Store.Write(audioInputPSIb, "AudioPSIb", store, true, DeliveryPolicy.LatestMessage);
-                /*
-                Store.Write(audioInputB2, "AudioB2", store, true, DeliveryPolicy.LatestMessage);
-                Store.Write(audioInputA1, "AudioA1", store, true, DeliveryPolicy.LatestMessage);
-                Store.Write(audioInputA2, "AudioA2", store, true, DeliveryPolicy.LatestMessage);
-                */
+                Store.Write(audioInputPSIb, "AudioB1", store, true, DeliveryPolicy.Unlimited);
+                Store.Write(audioInputB2, "AudioB2", store, true, DeliveryPolicy.Unlimited);
+                Store.Write(audioInputA1, "AudioA1", store, true, DeliveryPolicy.Unlimited);
+                Store.Write(audioInputA2, "AudioA2", store, true, DeliveryPolicy.Unlimited);
+
+                Store.Write(pipeline.Diagnostics, "diagnostics", store, true);
 
                 // Run the pipeline
                 pipeline.RunAsync();

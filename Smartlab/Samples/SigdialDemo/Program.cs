@@ -18,6 +18,9 @@
     using Microsoft.Psi.Kinect;
     using Apache.NMS;
     using Apache.NMS.ActiveMQ.Transport.Discovery;
+    using Microsoft.Psi.Diagnostics;
+    using CMU.Smartlab.Rtsp;
+    using System.Net;
 
     class Program
     {
@@ -28,9 +31,11 @@
         private const string TopicToNVBG = "PSI_NVBG_Location";
         private const string TopicToVHText = "PSI_VHT_Text";
         private const string TopicFromPython = "Python_PSI_Location";
+        private const string TopicFromPython_TextResponses = "Python_PSI_Text";
         private const string TopicFromBazaar = "Bazaar_PSI_Text";
         private const string TopicFromPython_QueryKinect = "Python_PSI_QueryKinect";
         private const string TopicToPython_AnswerKinect = "PSI_Python_AnswerKinect";
+        private const string TopicFromVHTAction = "VHT_PSI_Action";
 
         private const int SendingImageWidth = 360;
         private const int KinectImageWidth = 1920;
@@ -41,8 +46,8 @@
         private const double NVBGCooldownLocation = 8.0;
         private const double NVBGCooldownAudio =1.0;
 
-        private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
-        private static string AzureRegion = "eastus";
+        private static string AzureSubscriptionKey = "7366f9155c344f288aca77e365744267";
+        private static string AzureRegion = "eastasia";
 
         private static CommunicationManager manager;
 
@@ -156,9 +161,30 @@
             IdTail = new Dictionary<string, IdentityInfo>();
             manager = new CommunicationManager();
             manager.subscribe(TopicFromPython, ProcessLocation);
+            manager.subscribe(TopicFromPython_TextResponses, ProcessTextFromPython);
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
+            manager.subscribe(TopicFromVHTAction, ProcessVHTAction);
             return true;
+        }
+
+        private static void ProcessVHTAction(string s)
+        {
+            Console.WriteLine(s);
+            if (s == "Intialization Success")
+            {
+                manager.SendText(TopicToBazaar, "<start>");
+            }
+            else if (s == "End Speaking")
+            {
+                manager.SendText(TopicToBazaar, "<next>");
+            }
+        }
+
+        private static void ProcessTextFromPython(byte[] b)
+        {
+            string text = Encoding.UTF8.GetString(b);
+            ProcessText(text);
         }
 
         private static void HandleKinectQuery(byte[] b)
@@ -385,6 +411,7 @@
 
         private static void ProcessText(String s)
         {
+            /*
             string warmid = null;
             string coolid = null;
             Point3D poswarm = null;
@@ -411,9 +438,10 @@
                     poscool = IdTail[coolid].Position;
                 }
             }
-
+            */
             if (s != null)
             {
+                /*
                 Point3D pos2send = null;
                 if (s.Contains("identity:navigator") && (poscool != null))
                 {
@@ -443,8 +471,15 @@
                     Console.WriteLine($"Send hard-code navigator message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poscool.x}:{poscool.y}:{poscool.z}");
                     manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
                 }
-                manager.SendText(TopicToVHText, s);
-
+                */
+                string to_send = s;
+                if (!to_send.StartsWith("multimodal:true;%;"))
+                {
+                    to_send = $"multimodal:true;%;identity:yansen;%;speech:{s}";
+                }
+                    
+                manager.SendText(TopicToVHText, to_send);
+                Console.WriteLine($"Sending text message to VHT: {to_send}");
                 /*
                 if (s.Contains("navigator"))
                 {
@@ -475,11 +510,13 @@
 
         public static void RunDemo(bool AudioOnly = false, bool Webcam = false)
         {
-            using (Pipeline pipeline = Pipeline.Create())
+            using (Pipeline pipeline = Pipeline.Create(true))
             {
                 pipeline.PipelineExceptionNotHandled += Pipeline_PipelineException;
                 pipeline.PipelineCompleted += Pipeline_PipelineCompleted;
 
+                var store = Store.Create(pipeline, "MyStore", "C:\\Users\\thisiswys\\Desktop\\test");
+                Store.Write(pipeline.Diagnostics, "DignosticsStream", store);
                 // var store = Store.Open(pipeline, Program.LogName, Program.LogPath);
                 // Send video part to Python
 
@@ -506,18 +543,24 @@
 
                     // var kinectDepth = kinectSensor.DepthImage;
                     // var decoded = video.Out.Decode().Out;
-                    ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    kinectColor.Do(helper.SendImage);
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock);
+                    var scaled = kinectColor.Resize((float)Program.SendingImageWidth, (float)Program.SendingImageWidth / Program.KinectImageWidth * Program.KinectImageHeight);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
                     // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                 }
                 else if (!AudioOnly && Webcam)
                 {
-                    MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    // MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    var serverUriPSIb = new Uri("rtsp://lorex5416b1.pc.cs.cmu.edu");
+                    var credentialsPSIb = new NetworkCredential("admin", "54Lorex16");
+                    RtspCapture webcamPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
 
                     // var decoded = video.Out.Decode().Out;
-                    ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    webcam.Out.Do(helper.SendImage);
-                    // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock);
+                    var scaled = webcamPSIb.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
                 }
 
                 // Send audio part to Bazaar
@@ -536,7 +579,8 @@
                 var recognizer = new AzureSpeechRecognizer(pipeline, new AzureSpeechRecognizerConfiguration()
                 {
                     SubscriptionKey = Program.AzureSubscriptionKey,
-                    Region = Program.AzureRegion
+                    Region = Program.AzureRegion,
+                    Language = "zh-CN",
                 });
                 var annotatedAudio = audio.Join(vad);
                 annotatedAudio.PipeTo(recognizer);
@@ -559,6 +603,18 @@
                 Console.WriteLine("Press any key to exit...");
                 Console.ReadKey(true);
             }
+        }
+
+        private static void PrintImageSize(Shared<EncodedImage> arg1, Envelope arg2)
+        {
+            EncodedImage img = arg1.Resource;
+            Console.WriteLine($"Encoded: {img.GetBuffer().Length}");
+        }
+
+        private static void PrintImageSize(Shared<Image> arg1, Envelope arg2)
+        {
+            Image img = arg1.Resource;
+            Console.WriteLine($"Unencoded: {img.Size}");
         }
 
         private static void FindAudioSource(KinectAudioBeamInfo audioInfo, Envelope envelope)
