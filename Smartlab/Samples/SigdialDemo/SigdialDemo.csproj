@@ -174,6 +174,15 @@
       <Project>{d093ee34-08f1-4a54-9690-6ae964795ad2}</Project>
       <Name>CMU.Smartlab.Identity</Name>
     </ProjectReference>
+    <ProjectReference Include="..\..\Sources\Media\CMU.Smartlab.RtspCapture\CMU.Smartlab.Rtsp.csproj">
+      <Project>{fdeea121-60b4-4a2e-8fd0-cfa9f0fdfade}</Project>
+      <Name>CMU.Smartlab.Rtsp</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>xcopy "$(SolutionDir)\Smartlab\Sources\Media\CMU.Smartlab.RtspCapture\x64\*.dll" "$(TargetDir)" /Y /E /C /F
+
+xcopy "$(SolutionDir)\Smartlab\Sources\Media\libffmpeghelper\x64\$(Configuration)\libffmpeghelper.dll" "$(TargetDir)" /Y /E /C /F</PostBuildEvent>
+  </PropertyGroup>
 </Project>

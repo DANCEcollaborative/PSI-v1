@@ -20,6 +20,8 @@
     using Apache.NMS.ActiveMQ.Transport.Discovery;
     using NetMQ;
     using NetMQ.Sockets;
+    using CMU.Smartlab.Rtsp;
+    using System.Net;
 
     class Program
     {
@@ -443,11 +445,14 @@
                 }
                 else if (!AudioOnly && Webcam)
                 {
-                    MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
-
+                    // todo: temporarily changed to rtsp camera, add a new option later
+                    // MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    var serverUriPSIb = new Uri("rtsp://lorex5416b1.pc.cs.cmu.edu");
+                    var credentialsPSIb = new NetworkCredential("admin", "54Lorex16");
+                    RtspCapture webcamPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
                     // var decoded = video.Out.Decode().Out;
                     ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    webcam.Out.Do(helper.SendImage);
+                    webcamPSIb.Out.Do(helper.SendImage);
                     // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                 }
 

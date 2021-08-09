@@ -124,7 +124,7 @@
             int num = int.Parse(infos[0]);
             if (num >= 1)
             {
-                ProcessID(text);
+                // ProcessID(text);
                 Console.WriteLine($"Send location message to NVBG: multimodal:true;%;identity:someone;%;location:{infos[1]}");
                 manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{infos[1]}");
             }
@@ -139,11 +139,13 @@
             }
         }
 
+        /*
         private static void ProcessID(string s)
         {
             idTemp = idProcess.MsgParse(s);
             idProcess.IdCompare(idInfo, idTemp);
         }
+        */
 
 
         public static void RunDemo(bool AudioOnly=false)

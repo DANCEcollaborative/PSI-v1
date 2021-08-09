@@ -96,6 +96,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>xcopy "$(SolutionDir)\Smartlab\Sources\Media\CMU.Smartlab.RtspCapture\x64\*.dll" "$(TargetDir)" /Y /E /C /F
+
 xcopy "$(SolutionDir)\Smartlab\Sources\Media\libffmpeghelper\x64\$(Configuration)\libffmpeghelper.dll" "$(TargetDir)" /Y /E /C /F</PostBuildEvent>
   </PropertyGroup>
 </Project>
