@@ -23,7 +23,7 @@
 
     class Program
     {
-        private const string AppName = "SmartLab Project - Demo v2.2 (for SigDial Demo)";
+        private const string AppName = "SmartLab Project - Demo v3.0 (for SigDial Demo)";
 
         private const string TopicToBazaar = "PSI_Bazaar_Text";
         private const string TopicToPython = "PSI_Python_Image";
@@ -34,7 +34,8 @@
         private const string TopicFromPython_QueryKinect = "Python_PSI_QueryKinect";
         private const string TopicToPython_AnswerKinect = "PSI_Python_AnswerKinect";
 
-        private const int SendingImageWidth = 360;
+        private const int SendingImageWidth = 720;
+        private const int MaxSendingFrameRate = 15;
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
@@ -79,20 +80,24 @@
                     Console.WriteLine("############################################################################");
                     Console.WriteLine("1) Multimodal streaming with Kinect. Press any key to finish streaming.");
                     Console.WriteLine("2) Multimodal streaming with Webcam. Press any key to finish streaming.");
-                    Console.WriteLine("3) Audio only. Press any key to finish streaming.");
+                    Console.WriteLine("3) Multimodal streaming with RTSP camera. Press any key to finish streaming.");
+                    Console.WriteLine("4) Audio only. Press any key to finish streaming.");
                     Console.WriteLine("Q) Quit.");
                     ConsoleKey key = Console.ReadKey().Key;
                     Console.WriteLine();
                     switch (key)
                     {
                         case ConsoleKey.D1:
-                            RunDemo(false, false);
+                            RunDemo(false, "Kinect");
                             break;
                         case ConsoleKey.D2:
-                            RunDemo(false, true);
+                            RunDemo(false, "webcam");
                             break;
                         case ConsoleKey.D3:
-                            RunDemo(true, true);
+                            RunDemo(false, "rtsp");
+                            break;
+                        case ConsoleKey.D4:
+                            RunDemo(true);
                             break;
                         case ConsoleKey.Q:
                             exit = true;
@@ -393,7 +398,7 @@
             }
         }
 
-        public static void RunDemo(bool AudioOnly = false, bool Webcam = false)
+        public static void RunDemo(bool AudioOnly = false, string cameraType = "webcam")
         {
             using (Pipeline pipeline = Pipeline.Create())
             {
@@ -404,7 +409,7 @@
                 // Send video part to Python
 
                 // var video = store.OpenStream<Shared<EncodedImage>>("Image");
-                if (!AudioOnly && !Webcam)
+                if (!AudioOnly && cameraType == "Kinect")
                 {
                     var kinectSensorConfig = new KinectSensorConfiguration
                     {
@@ -416,31 +421,37 @@
                         OutputAudio = true,
                     };
                     var kinectSensor = new Microsoft.Psi.Kinect.KinectSensor(pipeline, kinectSensorConfig);
-                    // MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
-                    // var kinectRGBD = kinectSensor.RGBDImage;
                     var kinectColor = kinectSensor.ColorImage;
                     var kinectMapping = kinectSensor.ColorToCameraMapper;
                     var kinectAudio = kinectSensor.AudioBeamInfo.Where(result => result.Confidence > 0.7);
                     kinectMapping.Do(AddNewMapper);
                     kinectAudio.Do(FindAudioSource);
-
-                    // var kinectDepth = kinectSensor.DepthImage;
-                    // var decoded = video.Out.Decode().Out;
-                    ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    kinectColor.Do(helper.SendImage);
-                    // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                   
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = kinectColor.Resize((float)Program.SendingImageWidth, (float)Program.SendingImageWidth / Program.KinectImageWidth * Program.KinectImageHeight);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
+                   
                 }
-                else if (!AudioOnly && Webcam)
+                else if (!AudioOnly && cameraType == "webcam")
                 {
-                    // MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    MediaCapture webcam = new MediaCapture(pipeline, 1280, 720, 30);
+                    
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = webcam.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);                    
+                }
+                else if (!AudioOnly && cameraType == "rtsp")
+                {
                     var serverUriPSIb = new Uri("rtsp://lorex5416b1.pc.cs.cmu.edu");
                     var credentialsPSIb = new NetworkCredential("admin", "54Lorex16");
-                    RtspCapture webcamPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
+                    RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
 
-                    // var decoded = video.Out.Decode().Out;
-                    ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    webcamPSIb.Out.Do(helper.SendImage);
-                    // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = rtspPSIb.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
                 }
 
                 // Send audio part to Bazaar

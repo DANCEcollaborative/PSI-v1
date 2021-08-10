@@ -76,7 +76,6 @@ namespace CMU.Smartlab.Communication
                     }
                 }
             });
-            System.Console.WriteLine(envelope.OriginatingTime.Subtract(this.frameTime).TotalSeconds);
             if (!this.manager.Occupied && envelope.OriginatingTime.Subtract(this.frameTime).TotalSeconds > 1.0 / this.frameRate)
             {
                 this.manager.Occupied = true;

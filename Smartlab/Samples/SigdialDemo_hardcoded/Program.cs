@@ -38,7 +38,7 @@
         private const string TopicFromVHTAction = "VHT_PSI_Action";
 
         private const int SendingImageWidth = 360;
-        private const int MaxSendingFrameRate = 15;
+        private const int MaxSendingFrameRate = 30;
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
