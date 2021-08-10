@@ -20,6 +20,8 @@
     using Apache.NMS;
     using Apache.NMS.ActiveMQ.Transport.Discovery;
     using System.Net;
+    using NetMQ;
+    using NetMQ.Sockets;
 
     class Program
     {
@@ -34,8 +36,11 @@
         private const string TopicFromPython_QueryKinect = "Python_PSI_QueryKinect";
         private const string TopicToPython_AnswerKinect = "PSI_Python_AnswerKinect";
 
-        private const int SendingImageWidth = 720;
+        private const int SendingImageWidth = 360;
         private const int MaxSendingFrameRate = 15;
+        private const string TcpIPSubscriber = "tcp://127.0.0.1:5555";
+        private const string TcpIPPublisher = "tcp://127.0.0.1:5556";
+
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
@@ -48,7 +53,8 @@
         private static string AzureRegion = "eastus";
 
         private static CommunicationManager manager;
-
+        private static NetMqPublisher netmqpublisher;
+        private static NetMqSubscriber netmqsubscriber;
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
         public static readonly object LocationLock = new object();
@@ -164,6 +170,11 @@
             manager.subscribe(TopicFromPython, ProcessLocation);
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
+            netmqsubscriber = new NetMqSubscriber(TcpIPSubscriber);
+            netmqsubscriber.RegisterSubscriber(TopicFromBazaar); 
+
+            netmqpublisher = new NetMqPublisher(TcpIPPublisher);
+            // netmqpublisher.RegisterSubscriber(TopicToBazaar);
             return true;
         }
 
@@ -484,11 +495,11 @@
                 pipeline.RunAsync();
                 if (AudioOnly)
                 {
-                    Console.WriteLine("Running Smart Lab Project Demo v2.2 - Audio Only.");
+                    Console.WriteLine("Running Smart Lab Project Demo v3.0 - Audio Only.");
                 }
                 else
                 {
-                    Console.WriteLine("Running Smart Lab Project Demo v2.2");
+                    Console.WriteLine("Running Smart Lab Project Demo v3.0");
                 }
                 Console.WriteLine("Press any key to exit...");
                 Console.ReadKey(true);
@@ -546,8 +557,8 @@
                     }
                     if (nearestID != null)
                     {
-                        Console.WriteLine(angle);
-                        Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
+                        // Console.WriteLine(angle);
+                        // Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
                         AudioSourceList.Add(nearestID.TrueIdentity);
                         if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldownAudio)
                         {
@@ -607,8 +618,18 @@
                     {
                         AudioSourceList.Clear();
                         String messageToBazaar = $"multimodal:true;%;identity:{id};%;speech:{result.Text}";
-                        Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                        manager.SendText(TopicToBazaar, messageToBazaar);
+                        //Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                        Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
+                        // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
+                        netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
+                    /*    using (var pubSocket = new PublisherSocket())
+                        {
+                            pubSocket.Options.SendHighWatermark = 1000;
+                            pubSocket.Bind(TcpIPPublisher);
+                            Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
+                            pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
+                        }*/
+                            //manager.SendText(TopicToBazaar, messageToBazaar);
                         return;
                     }
                 }
@@ -616,15 +637,34 @@
                 {
                     String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.Last().TrueIdentity};%;speech:{result.Text}";
                     Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                    manager.SendText(TopicToBazaar, messageToBazaar);
+                    // manager.SendText(TopicToBazaar, messageToBazaar);
+                    // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
+                    netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
+                    /*using (var pubSocket = new PublisherSocket())
+                    {
+                        pubSocket.Options.SendHighWatermark = 1000;
+                        pubSocket.Bind(TcpIPPublisher);
+                        Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
+                        pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
+                    }*/
                 }
                 else
                 {
                     String name = getRandomName();
                     String messageToBazaar = $"multimodal:true;%;identity:{name};%;speech:{result.Text}";
                     //String location = getRandomLocation(); 
-                    Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
-                    manager.SendText(TopicToBazaar, messageToBazaar);
+                    Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
+                    // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
+                    netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
+                   /* using (var pubSocket = new PublisherSocket())
+                    {
+                        pubSocket.Options.SendHighWatermark = 1000;
+                        pubSocket.Bind(TcpIPPublisher);
+                        Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
+                        pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
+                    }*/
+                    //Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
+                    //manager.SendText(TopicToBazaar, messageToBazaar);
                 }
             }
         }
