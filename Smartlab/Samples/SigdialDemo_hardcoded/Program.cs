@@ -41,7 +41,7 @@
         private const double SocialDistance = 183;
         private const double DistanceWarningCooldown = 30.0;
         private const double NVBGCooldownLocation = 8.0;
-        private const double NVBGCooldownAudio = 3.0;
+        private const double NVBGCooldownAudio =3.0;
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
@@ -151,7 +151,7 @@
                 dir_x: new Point3D(0.0, 1.0, 0.0),
                 dir_y: null,
                 dir_z: new Point3D(1.0, 0.0, 0.0)
-                );
+                ); 
 
             IdHead = new Dictionary<string, IdentityInfo>();
             IdTail = new Dictionary<string, IdentityInfo>();
@@ -246,7 +246,7 @@
             }
             if (valid > 0)
             {
-                Point3D to_send = new Point3D(result.X / valid, result.Y / valid, result.Z / valid) * 100;
+                Point3D to_send = new Point3D(result.X / valid, result.Y / valid, result.Z / valid)*100;
                 to_send = KinectInfo.Cam2World(to_send);
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{to_send.x};{to_send.y};{to_send.z}");
                 //Console.WriteLine($"Answering Query: {ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
@@ -273,7 +273,7 @@
                 {
                     // Construct identity information instance.
                     IdentityInfo info = IdentityInfo.Parse(ts, infos[i]);
-
+                        
                     // Discard invalid instance
                     if (info.Position.IsZero())
                     {

@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommunicationManager.cs" />
+    <Compile Include="EncodedImageSendHelper.cs" />
     <Compile Include="ImageSendHelper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
