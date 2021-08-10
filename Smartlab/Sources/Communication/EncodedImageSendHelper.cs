@@ -15,6 +15,7 @@ namespace CMU.Smartlab.Communication
         public string SendingTopic;
         public object Lock;
         private DateTime frameTime = new DateTime(0);
+        private float frameRate;
 
         public string SizeTopic
         {
@@ -40,12 +41,13 @@ namespace CMU.Smartlab.Communication
             }
         }
 
-        public EncodedImageSendHelper(CommunicationManager manager, string name, string topic, object sendingLock)
+        public EncodedImageSendHelper(CommunicationManager manager, string name, string topic, object sendingLock, float frameRate)
         {
             this.Name = name;
             this.SendingTopic = topic;
             this.Lock = sendingLock;
             this.manager = manager;
+            this.frameRate = frameRate;
         }
 
         public void SendImage(Shared<EncodedImage> image, Envelope envelope)
@@ -70,12 +72,12 @@ namespace CMU.Smartlab.Communication
                     }
                     finally
                     {
-                        System.Threading.Thread.Sleep(50);
                         this.manager.Occupied = false;
                     }
                 }
             });
-            if (!this.manager.Occupied && envelope.OriginatingTime.CompareTo(this.frameTime) > 0)
+            System.Console.WriteLine(envelope.OriginatingTime.Subtract(this.frameTime).TotalSeconds);
+            if (!this.manager.Occupied && envelope.OriginatingTime.Subtract(this.frameTime).TotalSeconds > 1.0 / this.frameRate)
             {
                 this.manager.Occupied = true;
                 frameTime = envelope.OriginatingTime;

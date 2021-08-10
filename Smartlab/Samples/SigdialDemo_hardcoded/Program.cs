@@ -2,7 +2,6 @@
 {
     using CMU.Smartlab.Communication;
     using CMU.Smartlab.Identity;
-    using CMU.Smartlab.Rtsp;
     using System;
     using System.Collections.Generic;
     using System.Linq;
@@ -19,6 +18,8 @@
     using Microsoft.Psi.Kinect;
     using Apache.NMS;
     using Apache.NMS.ActiveMQ.Transport.Discovery;
+    using Microsoft.Psi.Diagnostics;
+    using CMU.Smartlab.Rtsp;
     using System.Net;
 
     class Program
@@ -30,34 +31,38 @@
         private const string TopicToNVBG = "PSI_NVBG_Location";
         private const string TopicToVHText = "PSI_VHT_Text";
         private const string TopicFromPython = "Python_PSI_Location";
+        private const string TopicFromPython_TextResponses = "Python_PSI_Text";
         private const string TopicFromBazaar = "Bazaar_PSI_Text";
         private const string TopicFromPython_QueryKinect = "Python_PSI_QueryKinect";
         private const string TopicToPython_AnswerKinect = "PSI_Python_AnswerKinect";
+        private const string TopicFromVHTAction = "VHT_PSI_Action";
 
         private const int SendingImageWidth = 360;
+        private const int MaxSendingFrameRate = 15;
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
 
-        private const double SocialDistance = 183;
+        private const double SocialDistance = 150;
         private const double DistanceWarningCooldown = 30.0;
         private const double NVBGCooldownLocation = 8.0;
-        private const double NVBGCooldownAudio =3.0;
+        private const double NVBGCooldownAudio = 1.0;
 
-        private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
-        private static string AzureRegion = "eastus";
+        private static string AzureSubscriptionKey = "7366f9155c344f288aca77e365744267";
+        private static string AzureRegion = "eastasia";
 
         private static CommunicationManager manager;
 
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
         public static readonly object LocationLock = new object();
-        public static readonly object AudioSourceLock = new object();
+        public static readonly object IdentityInfoLock = new object();
 
         public static volatile bool AudioSourceFlag = true;
 
         public static DateTime LastLocSendTime = new DateTime();
         public static DateTime LastDistanceWarning = new DateTime();
         public static DateTime LastNVBGTime = new DateTime();
+        public static DateTime LastAudioSourceTime = new DateTime();
 
         public static List<IdentityInfo> IdInfoList;
         public static Dictionary<string, IdentityInfo> IdHead;
@@ -151,15 +156,36 @@
                 dir_x: new Point3D(0.0, 1.0, 0.0),
                 dir_y: null,
                 dir_z: new Point3D(1.0, 0.0, 0.0)
-                ); 
+                );
 
             IdHead = new Dictionary<string, IdentityInfo>();
             IdTail = new Dictionary<string, IdentityInfo>();
             manager = new CommunicationManager();
             manager.subscribe(TopicFromPython, ProcessLocation);
+            manager.subscribe(TopicFromPython_TextResponses, ProcessTextFromPython);
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
+            manager.subscribe(TopicFromVHTAction, ProcessVHTAction);
             return true;
+        }
+
+        private static void ProcessVHTAction(string s)
+        {
+            Console.WriteLine(s);
+            if (s == "Intialization Success")
+            {
+                manager.SendText(TopicToBazaar, "<start>");
+            }
+            else if (s == "End Speaking")
+            {
+                manager.SendText(TopicToBazaar, "<next>");
+            }
+        }
+
+        private static void ProcessTextFromPython(byte[] b)
+        {
+            string text = Encoding.UTF8.GetString(b);
+            ProcessText(text);
         }
 
         private static void HandleKinectQuery(byte[] b)
@@ -246,7 +272,7 @@
             }
             if (valid > 0)
             {
-                Point3D to_send = new Point3D(result.X / valid, result.Y / valid, result.Z / valid)*100;
+                Point3D to_send = new Point3D(result.X / valid, result.Y / valid, result.Z / valid) * 100;
                 to_send = KinectInfo.Cam2World(to_send);
                 manager.SendText(TopicToPython_AnswerKinect, $"{ticks};{to_send.x};{to_send.y};{to_send.z}");
                 //Console.WriteLine($"Answering Query: {ticks};{result.X / valid};{result.Y / valid};{result.Z / valid}");
@@ -273,7 +299,7 @@
                 {
                     // Construct identity information instance.
                     IdentityInfo info = IdentityInfo.Parse(ts, infos[i]);
-                        
+
                     // Discard invalid instance
                     if (info.Position.IsZero())
                     {
@@ -308,7 +334,7 @@
                         }
                     }
 
-                    lock (AudioSourceLock)
+                    lock (IdentityInfoLock)
                     {
                         if (!(match is null))
                         {
@@ -338,7 +364,7 @@
                 }
 
                 // Discard information long ago.
-                lock (AudioSourceLock)
+                lock (IdentityInfoLock)
                 {
                     while (IdInfoList.Count > 0 && IdInfoList.Last().Timestamp.Subtract(IdInfoList.First().Timestamp).TotalSeconds > 20)
                     {
@@ -386,20 +412,112 @@
 
         private static void ProcessText(String s)
         {
+            /*
+            string warmid = null;
+            string coolid = null;
+            Point3D poswarm = null;
+            Point3D poscool = null;
+            lock (IdentityInfoLock)
+            {
+                foreach (var kv in IdTail)
+                {
+                    if (kv.Value.Identity.ToLower().Contains("warm"))
+                    {
+                        warmid = kv.Key;
+                    }
+                    if (kv.Value.Identity.ToLower().Contains("cool"))
+                    {
+                        coolid = kv.Key;
+                    }
+                }
+                if (warmid != null)
+                {
+                    poswarm = IdTail[warmid].Position;
+                }
+                if (coolid != null)
+                {
+                    poscool = IdTail[coolid].Position;
+                }
+            }
+            */
             if (s != null)
             {
-                Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
-                manager.SendText(TopicToVHText, s);
+                /*
+                Point3D pos2send = null;
+                if (s.Contains("identity:navigator") && (poscool != null))
+                {
+                    pos2send = poscool;
+                }
+                else if (s.Contains("identitiy:driver") && (poswarm != null))
+                {
+                    pos2send = poswarm;
+                }
+                else
+                {
+                    if ((poscool != null) && (poswarm != null)) 
+                    {
+                        pos2send = PUtil.Mid(poscool, poswarm);
+                    }
+                    else if (poscool != null)
+                    {
+                        pos2send = poscool;
+                    }
+                    else if (poswarm != null)
+                    {
+                        pos2send = poswarm;
+                    }
+                }
+                if (pos2send != null)
+                {
+                    Console.WriteLine($"Send hard-code navigator message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poscool.x}:{poscool.y}:{poscool.z}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:someone;%;location:{pos2send.x}:{pos2send.y}:{pos2send.z}");
+                }
+                */
+                string to_send = s;
+                if (!to_send.StartsWith("multimodal:true;%;"))
+                {
+                    to_send = $"multimodal:true;%;identity:yansen;%;speech:{s}";
+                }
+
+                manager.SendText(TopicToVHText, to_send);
+                Console.WriteLine($"Sending text message to VHT: {to_send}");
+                /*
+                if (s.Contains("navigator"))
+                {
+                    Console.WriteLine($"Send hard-code navigator message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poscool.x}:{poscool.y}:{poscool.z}");
+                    manager.SendText(TopicToVHText, s);
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:navigator;%;location:{poscool.x}:{poscool.y}:{poscool.z}");
+                }
+                else if(s.Contains("driver"))
+                {
+                    Console.WriteLine($"Send hard-code driver message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{poswarm.x}:{poswarm.y}:{poswarm.z}");
+                    manager.SendText(TopicToVHText, s);
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:navigator;%;location:{poswarm.x}:{poswarm.y}:{poswarm.z}");
+                }
+                else if(s.Contains("group"))
+                {
+                    Console.WriteLine($"Send hard-code group message to VHT: multimodal:false;%;identity:someone;%;text:{s}&{PUtil.Mid(poscool, poswarm).x}:{PUtil.Mid(poscool, poswarm).y}:{PUtil.Mid(poscool, poswarm).z}");
+                    manager.SendText(TopicToNVBG, $"multimodal:true;%;identity:navigator;%;location:{PUtil.Mid(poscool, poswarm).x}:{PUtil.Mid(poscool, poswarm).y}:{PUtil.Mid(poscool, poswarm).z}");
+                    manager.SendText(TopicToVHText, s);
+                }
+                else
+                {
+                    Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
+                    manager.SendText(TopicToVHText, s);
+                }
+                */
             }
         }
 
         public static void RunDemo(bool AudioOnly = false, bool Webcam = false)
         {
-            using (Pipeline pipeline = Pipeline.Create())
+            using (Pipeline pipeline = Pipeline.Create(true))
             {
                 pipeline.PipelineExceptionNotHandled += Pipeline_PipelineException;
                 pipeline.PipelineCompleted += Pipeline_PipelineCompleted;
 
+                var store = Store.Create(pipeline, "MyStore", "C:\\Users\\thisiswys\\Desktop\\test");
+                Store.Write(pipeline.Diagnostics, "DignosticsStream", store);
                 // var store = Store.Open(pipeline, Program.LogName, Program.LogPath);
                 // Send video part to Python
 
@@ -426,8 +544,10 @@
 
                     // var kinectDepth = kinectSensor.DepthImage;
                     // var decoded = video.Out.Decode().Out;
-                    ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    kinectColor.Do(helper.SendImage);
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = kinectColor.Resize((float)Program.SendingImageWidth, (float)Program.SendingImageWidth / Program.KinectImageWidth * Program.KinectImageHeight);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
                     // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                 }
                 else if (!AudioOnly && Webcam)
@@ -438,9 +558,10 @@
                     RtspCapture webcamPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
 
                     // var decoded = video.Out.Decode().Out;
-                    ImageSendHelper helper = new ImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendingImageWidth, Program.SendToPythonLock);
-                    webcamPSIb.Out.Do(helper.SendImage);
-                    // var encoded = webcam.Out.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = webcamPSIb.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
                 }
 
                 // Send audio part to Bazaar
@@ -459,7 +580,8 @@
                 var recognizer = new AzureSpeechRecognizer(pipeline, new AzureSpeechRecognizerConfiguration()
                 {
                     SubscriptionKey = Program.AzureSubscriptionKey,
-                    Region = Program.AzureRegion
+                    Region = Program.AzureRegion,
+                    Language = "zh-CN",
                 });
                 var annotatedAudio = audio.Join(vad);
                 annotatedAudio.PipeTo(recognizer);
@@ -484,9 +606,26 @@
             }
         }
 
+        private static void PrintImageSize(Shared<EncodedImage> arg1, Envelope arg2)
+        {
+            EncodedImage img = arg1.Resource;
+            Console.WriteLine($"Encoded: {img.GetBuffer().Length}");
+        }
+
+        private static void PrintImageSize(Shared<Image> arg1, Envelope arg2)
+        {
+            Image img = arg1.Resource;
+            Console.WriteLine($"Unencoded: {img.Size}");
+        }
+
         private static void FindAudioSource(KinectAudioBeamInfo audioInfo, Envelope envelope)
         {
             // System.Threading.Thread.Sleep(1000);
+            if (DateTime.Now.Subtract(LastAudioSourceTime).TotalSeconds < 0.2)
+            {
+                return;
+            }
+            LastAudioSourceTime = DateTime.Now;
             AudioSourceFlag = false;
             double angle = audioInfo.Angle;
             Line3D soundPlane = new Line3D(
@@ -497,7 +636,7 @@
             {
                 double nearestDis = 10000;
                 IdentityInfo nearestID = null;
-                lock (AudioSourceLock)
+                lock (IdentityInfoLock)
                 {
                     foreach (var kv in IdTail)
                     {
@@ -535,8 +674,8 @@
                     }
                     if (nearestID != null)
                     {
-                        Console.WriteLine(angle);
-                        Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
+                        //  Console.WriteLine(angle);
+                        // Console.WriteLine($"{nearestID.TrueIdentity}: {nearestDis}");
                         AudioSourceList.Add(nearestID.TrueIdentity);
                         if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldownAudio)
                         {
