@@ -73,7 +73,7 @@
       <HintPath>..\..\..\packages\Microsoft.Kinect.2.0.1410.19000\lib\net45\Microsoft.Kinect.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Psi, Version=0.15.49.1, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\packages\Microsoft.Psi.Runtime.0.15.49.1-beta\lib\netstandard2.0\Microsoft.Psi.dll</HintPath>
+      <HintPath>..\..\..\Sources\Runtime\Microsoft.Psi\bin\Debug\netstandard2.0\Microsoft.Psi.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Psi.DeviceManagement, Version=0.15.49.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.Psi.DeviceManagement.0.15.49.1-beta\lib\netstandard2.0\Microsoft.Psi.DeviceManagement.dll</HintPath>

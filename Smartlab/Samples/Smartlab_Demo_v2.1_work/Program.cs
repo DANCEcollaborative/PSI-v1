@@ -36,11 +36,14 @@
 
         private static string AzureSubscriptionKey = "abee363f8d89444998c5f35b6365ca38";
         private static string AzureRegion = "eastus";
+        private static string endpoint = "tcp://127.0.0.1:5569";
 
         private static Dictionary<string, string[]> idInfo = new Dictionary<string, string[]>();
         private static Dictionary<string, string[]> idTemp = new Dictionary<string, string[]>();
 
         private static CommunicationManager manager;
+        private static NetMqSubscriber netsubscriber;
+        private static NetMqPublisher netpublisher;
         // private static IdentityInfoProcess idProcess;
 
         public static readonly object SendToBazaarLock = new object();
@@ -114,6 +117,10 @@
             manager = new CommunicationManager();
             manager.subscribe(TopicFromPython, ProcessLocation);
             manager.subscribe(TopicFromBazaar, ProcessText);
+            netsubscriber = new NetMqSubscriber(endpoint);
+            netsubscriber.RegisterSbuscriberAll();
+            netsubscriber.RegisterSubscriber(TopicFromBazaar);
+            netpublisher = new NetMqPublisher(endpoint);
             return true;
         }
 
@@ -214,7 +221,8 @@
                 String location = getRandomLocation(); 
                 String messageToBazaar = "multimodal:true;%;speech:" + result.Text + ";%;identity:" + name + ";%;location:" + location;
                 Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                manager.SendText(TopicToBazaar, messageToBazaar);
+                netpublisher.Publish(TopicToBazaar, messageToBazaar);
+                //manager.SendText(TopicToBazaar, messageToBazaar);
             }
         }
 

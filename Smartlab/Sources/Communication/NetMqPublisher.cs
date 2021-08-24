@@ -21,7 +21,6 @@ namespace CMU.Smartlab.Communication
             _publisherSocket.Bind("tcp://127.0.0.1:8888");
         }
 
-
         public NetMqPublisher(string endPoint)
         {
             _publisherSocket = new PublisherSocket();
