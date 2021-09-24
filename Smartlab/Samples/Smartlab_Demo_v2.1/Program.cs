@@ -20,7 +20,7 @@
         private const string AppName = "SmartLab Project - Demo v2.1";
 
         private const string LogName = @"WebcamWithAudioSample";
-        private const string LogPath = @"C:\\Users\thisiswys\Videos\WebcamWithAudioSample.0005";
+        // private const string LogPath = @"C:\\Users\thisiswys\Videos\WebcamWithAudioSample.0005";
 
         private const string TopicToBazaar = "PSI_Bazaar_Text";
         private const string TopicToPython = "PSI_Python_Image";
