@@ -20,8 +20,6 @@
     using Apache.NMS;
     using Apache.NMS.ActiveMQ.Transport.Discovery;
     using System.Net;
-    using NetMQ;
-    using NetMQ.Sockets;
 
     class Program
     {
@@ -38,8 +36,8 @@
 
         private const int SendingImageWidth = 360;
         private const int MaxSendingFrameRate = 15;
-        private const string TcpIPSubscriber = "tcp://127.0.0.1:5555";
-        private const string TcpIPPublisher = "tcp://127.0.0.1:5556";
+        // private const string TcpIPSubscriber = "tcp://127.0.0.1:5555";
+        // private const string TcpIPPublisher = "tcp://127.0.0.1:5556";
 
         private const int KinectImageWidth = 1920;
         private const int KinectImageHeight = 1080;
@@ -53,8 +51,8 @@
         private static string AzureRegion = "eastus";
 
         private static CommunicationManager manager;
-        private static NetMqPublisher netmqpublisher;
-        private static NetMqSubscriber netmqsubscriber;
+        // private static NetMqPublisher netmqpublisher;
+        // private static NetMqSubscriber netmqsubscriber;
         public static readonly object SendToBazaarLock = new object();
         public static readonly object SendToPythonLock = new object();
         public static readonly object LocationLock = new object();
@@ -170,10 +168,10 @@
             manager.subscribe(TopicFromPython, ProcessLocation);
             manager.subscribe(TopicFromBazaar, ProcessText);
             manager.subscribe(TopicFromPython_QueryKinect, HandleKinectQuery);
-            netmqsubscriber = new NetMqSubscriber(TcpIPSubscriber);
-            netmqsubscriber.RegisterSubscriber(TopicFromBazaar); 
+            // netmqsubscriber = new NetMqSubscriber(TcpIPSubscriber);
+            // netmqsubscriber.RegisterSubscriber(TopicFromBazaar); 
 
-            netmqpublisher = new NetMqPublisher(TcpIPPublisher);
+            // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
             // netmqpublisher.RegisterSubscriber(TopicToBazaar);
             return true;
         }
@@ -342,7 +340,7 @@
                         // Store the inden2tity information and send it to other module.
                         IdInfoList.Add(info);
                     }
-                    //Console.WriteLine($"Recieved location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
+                    //Console.WriteLine($"Received location message from RealModal: multimodal:true;%;identity:{info.TrueIdentity}(Detected: {info.Identity});%;location:{infos[i].Split('&')[1]}");
                     if (DateTime.Now.Subtract(LastNVBGTime).TotalSeconds > NVBGCooldownLocation)
                     {
                         Point3D pos2send = IdInfoList?.Last().Position;
@@ -618,10 +616,10 @@
                     {
                         AudioSourceList.Clear();
                         String messageToBazaar = $"multimodal:true;%;identity:{id};%;speech:{result.Text}";
-                        //Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                        Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
+                        Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
+                        // Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
                         // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
-                        netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
+                        // netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                     /*    using (var pubSocket = new PublisherSocket())
                         {
                             pubSocket.Options.SendHighWatermark = 1000;
@@ -629,7 +627,8 @@
                             Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
                             pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
                         }*/
-                            //manager.SendText(TopicToBazaar, messageToBazaar);
+                        
+                        manager.SendText(TopicToBazaar, messageToBazaar);
                         return;
                     }
                 }
@@ -637,9 +636,9 @@
                 {
                     String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.Last().TrueIdentity};%;speech:{result.Text}";
                     Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                    // manager.SendText(TopicToBazaar, messageToBazaar);
+                    manager.SendText(TopicToBazaar, messageToBazaar);
                     // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
-                    netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
+                    // netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                     /*using (var pubSocket = new PublisherSocket())
                     {
                         pubSocket.Options.SendHighWatermark = 1000;
@@ -653,9 +652,9 @@
                     String name = getRandomName();
                     String messageToBazaar = $"multimodal:true;%;identity:{name};%;speech:{result.Text}";
                     //String location = getRandomLocation(); 
-                    Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
+                    // Console.WriteLine("Sending message to Bazaar through NetMQ: {0}", messageToBazaar);
                     // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
-                    netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
+                    // netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                    /* using (var pubSocket = new PublisherSocket())
                     {
                         pubSocket.Options.SendHighWatermark = 1000;
@@ -663,8 +662,8 @@
                         Console.WriteLine("Sending message to Bazaar : {0}", messageToBazaar);
                         pubSocket.SendMoreFrame("TcpToBazaar").SendFrame(messageToBazaar);
                     }*/
-                    //Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
-                    //manager.SendText(TopicToBazaar, messageToBazaar);
+                    Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
+                    manager.SendText(TopicToBazaar, messageToBazaar);
                 }
             }
         }
