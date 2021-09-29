@@ -636,9 +636,9 @@
                 {
                     String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.Last().TrueIdentity};%;speech:{result.Text}";
                     Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
-                    // manager.SendText(TopicToBazaar, messageToBazaar);
+                    manager.SendText(TopicToBazaar, messageToBazaar);
                     // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
-                    netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
+                    // netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                     /*using (var pubSocket = new PublisherSocket())
                     {
                         pubSocket.Options.SendHighWatermark = 1000;
