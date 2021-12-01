@@ -86,7 +86,8 @@
                     Console.WriteLine("2) Multimodal streaming with Webcam. Press any key to finish streaming.");
                     Console.WriteLine("3) Multimodal streaming with Lorex camera. Press any key to finish streaming.");
                     Console.WriteLine("4) Multimodal streaming with Amcrest camera. Press any key to finish streaming.");
-                    Console.WriteLine("5) Audio only. Press any key to finish streaming.");
+                    Console.WriteLine("5) Multimodal streaming with Foscam camera. Press any key to finish streaming.");
+                    Console.WriteLine("6) Audio only. Press any key to finish streaming.");
                     Console.WriteLine("Q) Quit.");
                     ConsoleKey key = Console.ReadKey().Key;
                     Console.WriteLine();
@@ -106,6 +107,10 @@
                             RunDemo(false, "amcrest");
                             break;
                         case ConsoleKey.D5:
+                            Console.WriteLine("Streaming with Foscam camera ...");
+                            RunDemo(false, "foscam");
+                            break;
+                        case ConsoleKey.D6:
                             RunDemo(true);
                             break;
                         case ConsoleKey.Q:
@@ -470,7 +475,19 @@
                 else if (!AudioOnly && cameraType == "amcrest")
                 {
                     var serverUriPSIb = new Uri("rtsp://amcrest1041a.pc.cs.cmu.edu");
-                    var credentialsPSIb = new NetworkCredential("admin", "5416AmcrestA");
+                    // var credentialsPSIb = new NetworkCredential("admin", "5416AmcrestA");
+                    var credentialsPSIb = new NetworkCredential("admin", "admin");
+                    RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
+
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = rtspPSIb.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
+                }
+                else if (!AudioOnly && cameraType == "foscam")
+                {
+                    var serverUriPSIb = new Uri("rtsp://foscamr4sa.pc.cs.cmu.edu");
+                    var credentialsPSIb = new NetworkCredential("admin5416", "5416FoscamA");
                     RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
 
                     EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
