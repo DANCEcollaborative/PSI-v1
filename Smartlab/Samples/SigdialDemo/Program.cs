@@ -84,8 +84,9 @@
                     Console.WriteLine("############################################################################");
                     Console.WriteLine("1) Multimodal streaming with Kinect. Press any key to finish streaming.");
                     Console.WriteLine("2) Multimodal streaming with Webcam. Press any key to finish streaming.");
-                    Console.WriteLine("3) Multimodal streaming with RTSP camera. Press any key to finish streaming.");
-                    Console.WriteLine("4) Audio only. Press any key to finish streaming.");
+                    Console.WriteLine("3) Multimodal streaming with Lorex camera. Press any key to finish streaming.");
+                    Console.WriteLine("4) Multimodal streaming with Amcrest camera. Press any key to finish streaming.");
+                    Console.WriteLine("5) Audio only. Press any key to finish streaming.");
                     Console.WriteLine("Q) Quit.");
                     ConsoleKey key = Console.ReadKey().Key;
                     Console.WriteLine();
@@ -98,9 +99,13 @@
                             RunDemo(false, "webcam");
                             break;
                         case ConsoleKey.D3:
-                            RunDemo(false, "rtsp");
+                            RunDemo(false, "lorex");
                             break;
                         case ConsoleKey.D4:
+                            Console.WriteLine("Streaming with Amcrest camera ...");
+                            RunDemo(false, "amcrest");
+                            break;
+                        case ConsoleKey.D5:
                             RunDemo(true);
                             break;
                         case ConsoleKey.Q:
@@ -451,10 +456,21 @@
                     var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                     encoded.Do(helper.SendImage);                    
                 }
-                else if (!AudioOnly && cameraType == "rtsp")
+                else if (!AudioOnly && cameraType == "lorex")
                 {
                     var serverUriPSIb = new Uri("rtsp://lorex5416b1.pc.cs.cmu.edu");
                     var credentialsPSIb = new NetworkCredential("admin", "54Lorex16");
+                    RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
+
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = rtspPSIb.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
+                }
+                else if (!AudioOnly && cameraType == "amcrest")
+                {
+                    var serverUriPSIb = new Uri("rtsp://amcrest1041a.pc.cs.cmu.edu");
+                    var credentialsPSIb = new NetworkCredential("admin", "5416AmcrestA");
                     RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
 
                     EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);

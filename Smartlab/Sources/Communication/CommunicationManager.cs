@@ -57,7 +57,15 @@ namespace CMU.Smartlab.Communication
 
         public void SendText(String topicName, String content)
         {
-            Console.WriteLine("CommunicationManager.cs: SendText -- topicName: " + topicName + "  content: " + content);
+            // Console.WriteLine("CommunicationManager.cs: SendText -- topicName: " + topicName + "  content: " + content);
+            IMessageProducer producer = this.GetProducer(topicName);
+            ITextMessage message = producer.CreateTextMessage(content);
+            producer.Send(message, MsgDeliveryMode.Persistent, MsgPriority.Normal, TimeSpan.MaxValue);
+        }
+
+        public void SendImageAsText(String topicName, String content)
+        {
+            // Console.WriteLine("CommunicationManager.cs: SendText -- topicName: " + topicName + "  content: Image sent");
             IMessageProducer producer = this.GetProducer(topicName);
             ITextMessage message = producer.CreateTextMessage(content);
             producer.Send(message, MsgDeliveryMode.Persistent, MsgPriority.Normal, TimeSpan.MaxValue);
@@ -82,7 +90,7 @@ namespace CMU.Smartlab.Communication
 
         public void SendImage(String topic, Image img)
         {
-            this.SendText(topic, Convert.ToBase64String(img.ReadBytes(img.Size)));
+            this.SendImageAsText(topic, Convert.ToBase64String(img.ReadBytes(img.Size)));
         }
 
         private IMessageProducer GetProducer(string topicName)
@@ -112,7 +120,7 @@ namespace CMU.Smartlab.Communication
                 if (message is ITextMessage)
                 {
                     ITextMessage textMessage = (ITextMessage)message;
-                    Console.WriteLine("CommunicationManager.cs: subscribe ITextMessage -- topic: " + topic + "  textMessage: " + textMessage);
+                    // Console.WriteLine("CommunicationManager.cs: subscribe ITextMessage -- topic: " + topic + "  textMessage: " + textMessage);
                     listener.Invoke(textMessage);
                 }
             });
@@ -139,7 +147,7 @@ namespace CMU.Smartlab.Communication
                 if (message is ITextMessage)
                 {
                     string text = ((ITextMessage)message).Text;
-                    Console.WriteLine("CommunicationManager.cs: subscribe string -- topic: " + topic + "  textMessage: " + text);
+                    // Console.WriteLine("CommunicationManager.cs: subscribe string -- topic: " + topic + "  textMessage: " + text);
                     listener.Invoke(text);
                 }
             });

@@ -56,6 +56,9 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
     <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <NoWin32Manifest>true</NoWin32Manifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="Apache.NMS, Version=1.8.0.0, Culture=neutral, PublicKeyToken=82756feee3957618, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Apache.NMS.1.8.0\lib\net40\Apache.NMS.dll</HintPath>
@@ -71,9 +74,6 @@
     </Reference>
     <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.Kinect.2.0.1410.19000\lib\net45\Microsoft.Kinect.dll</HintPath>
-    </Reference>
-    <Reference Include="Microsoft.Psi, Version=0.15.49.1, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\..\Sources\Runtime\Microsoft.Psi\bin\Debug\netstandard2.0\Microsoft.Psi.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Psi.DeviceManagement, Version=0.15.49.1, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.Psi.DeviceManagement.0.15.49.1-beta\lib\netstandard2.0\Microsoft.Psi.DeviceManagement.dll</HintPath>
@@ -182,6 +182,10 @@
     <ProjectReference Include="..\..\..\Sources\Media\Microsoft.Psi.Media_Interop.Windows.x64\Microsoft.Psi.Media_Interop.Windows.x64.vcxproj">
       <Project>{5348a94f-7b3a-4b42-8555-2a1491971090}</Project>
       <Name>Microsoft.Psi.Media_Interop.Windows.x64</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\Sources\Runtime\Microsoft.Psi\Microsoft.Psi.csproj">
+      <Project>{04147400-0ab0-4f07-9975-d4b7e58150db}</Project>
+      <Name>Microsoft.Psi</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Sources\Speech\Microsoft.Psi.Speech.Windows\Microsoft.Psi.Speech.Windows.csproj">
       <Project>{3fb6cd31-0941-4372-9bdb-9e6830385dd4}</Project>

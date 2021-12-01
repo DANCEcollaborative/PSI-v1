@@ -66,14 +66,36 @@
     <Reference Include="Microsoft.Kinect, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Microsoft.Kinect.2.0.1410.19000\lib\net45\Microsoft.Kinect.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Psi, Version=0.15.49.1, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Microsoft.Psi.Runtime.0.15.49.1-beta\lib\netstandard2.0\Microsoft.Psi.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Psi.IL, Version=0.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\Microsoft.Psi.Runtime.0.15.49.1-beta\lib\netstandard2.0\Microsoft.Psi.IL.dll</HintPath>
+    </Reference>
     <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="System" />
+    <Reference Include="System.Buffers, Version=4.0.2.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\System.Buffers.4.4.0\lib\netstandard2.0\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Collections.Immutable, Version=1.2.5.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\System.Collections.Immutable.1.7.0\lib\netstandard2.0\System.Collections.Immutable.dll</HintPath>
+    </Reference>
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Drawing.Common, Version=4.0.0.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
       <HintPath>..\..\..\packages\System.Drawing.Common.5.0.0-preview.3.20214.6\lib\net461\System.Drawing.Common.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Memory, Version=4.0.1.1, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\System.Memory.4.5.3\lib\netstandard2.0\System.Memory.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Runtime.CompilerServices.Unsafe, Version=4.0.4.1, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
+      <HintPath>..\..\..\packages\System.Runtime.CompilerServices.Unsafe.4.5.2\lib\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll</HintPath>
     </Reference>
     <Reference Include="System.Transactions" />
     <Reference Include="System.Web" />
@@ -124,10 +146,6 @@
     <ProjectReference Include="..\..\..\Sources\Media\Microsoft.Psi.Media_Interop.Windows.x64\Microsoft.Psi.Media_Interop.Windows.x64.vcxproj">
       <Project>{5348a94f-7b3a-4b42-8555-2a1491971090}</Project>
       <Name>Microsoft.Psi.Media_Interop.Windows.x64</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\Sources\Runtime\Microsoft.Psi\Microsoft.Psi.csproj">
-      <Project>{04147400-0ab0-4f07-9975-d4b7e58150db}</Project>
-      <Name>Microsoft.Psi</Name>
     </ProjectReference>
     <ProjectReference Include="..\..\..\Sources\Speech\Microsoft.Psi.Speech.Windows\Microsoft.Psi.Speech.Windows.csproj">
       <Project>{3fb6cd31-0941-4372-9bdb-9e6830385dd4}</Project>
