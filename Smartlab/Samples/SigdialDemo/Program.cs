@@ -82,12 +82,14 @@
                 while (!exit)
                 {
                     Console.WriteLine("############################################################################");
-                    Console.WriteLine("1) Multimodal streaming with Kinect. Press any key to finish streaming.");
-                    Console.WriteLine("2) Multimodal streaming with Webcam. Press any key to finish streaming.");
-                    Console.WriteLine("3) Multimodal streaming with Lorex camera. Press any key to finish streaming.");
-                    Console.WriteLine("4) Multimodal streaming with Amcrest camera. Press any key to finish streaming.");
-                    Console.WriteLine("5) Multimodal streaming with Foscam camera. Press any key to finish streaming.");
-                    Console.WriteLine("6) Audio only. Press any key to finish streaming.");
+                    Console.WriteLine("1) Multimodal streaming, Kinect. Press any key to finish streaming.");
+                    Console.WriteLine("2) Multimodal streaming, Webcam. Press any key to finish streaming.");
+                    Console.WriteLine("3) Multimodal streaming, Lorex camera. Press any key to finish streaming.");
+                    Console.WriteLine("4) Multimodal streaming, Amcrest camera on ethernet. Press any key to finish streaming.");
+                    Console.WriteLine("5) Multimodal streaming, Amcrest camera on wifi. Press any key to finish streaming.");
+                    Console.WriteLine("6) Multimodal streaming, Foscam camera on ethernet. Press any key to finish streaming.");
+                    Console.WriteLine("7) Multimodal streaming, Foscam camera on wifi. Press any key to finish streaming.");
+                    Console.WriteLine("8) Audio only. Press any key to finish streaming.");
                     Console.WriteLine("Q) Quit.");
                     ConsoleKey key = Console.ReadKey().Key;
                     Console.WriteLine();
@@ -103,14 +105,22 @@
                             RunDemo(false, "lorex");
                             break;
                         case ConsoleKey.D4:
-                            Console.WriteLine("Streaming with Amcrest camera ...");
-                            RunDemo(false, "amcrest");
+                            Console.WriteLine("Streaming Amcrest camera on ethernet ...");
+                            RunDemo(false, "amcrest_ethernet");
                             break;
                         case ConsoleKey.D5:
-                            Console.WriteLine("Streaming with Foscam camera ...");
-                            RunDemo(false, "foscam");
+                            Console.WriteLine("Streaming Amcrest camera on wifi ...");
+                            RunDemo(false, "amcrest_wifi");
                             break;
                         case ConsoleKey.D6:
+                            Console.WriteLine("Streaming Foscam camera on ethernet ...");
+                            RunDemo(false, "foscam_ethernet");
+                            break;
+                        case ConsoleKey.D7:
+                            Console.WriteLine("Streaming Foscam camera on wifi ...");
+                            RunDemo(false, "foscam_wifi");
+                            break;
+                        case ConsoleKey.D8:
                             RunDemo(true);
                             break;
                         case ConsoleKey.Q:
@@ -472,7 +482,7 @@
                     var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                     encoded.Do(helper.SendImage);
                 }
-                else if (!AudioOnly && cameraType == "amcrest")
+                else if (!AudioOnly && cameraType == "amcrest_ethernet")
                 {
                     var serverUriPSIb = new Uri("rtsp://amcrest1041a.pc.cs.cmu.edu");
                     // var credentialsPSIb = new NetworkCredential("admin", "5416AmcrestA");
@@ -484,9 +494,32 @@
                     var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
                     encoded.Do(helper.SendImage);
                 }
-                else if (!AudioOnly && cameraType == "foscam")
+                else if (!AudioOnly && cameraType == "amcrest_wifi")
                 {
-                    var serverUriPSIb = new Uri("rtsp://foscamr4sa.pc.cs.cmu.edu");
+                    var serverUriPSIb = new Uri("rtsp://amcrest1041a.wifi.local.cmu.edu");
+                    // var credentialsPSIb = new NetworkCredential("admin", "5416AmcrestA");
+                    var credentialsPSIb = new NetworkCredential("admin", "admin");
+                    RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
+
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = rtspPSIb.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
+                }
+                else if (!AudioOnly && cameraType == "foscam_ethernet")
+                {
+                    var serverUriPSIb = new Uri("rtsp://foscamr4sa.pc.cs.cmu.edu:88/videoMain");
+                    var credentialsPSIb = new NetworkCredential("admin5416", "5416FoscamA");
+                    RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
+
+                    EncodedImageSendHelper helper = new EncodedImageSendHelper(manager, "webcam", Program.TopicToPython, Program.SendToPythonLock, Program.MaxSendingFrameRate);
+                    var scaled = rtspPSIb.Out.Resize((float)Program.SendingImageWidth, Program.SendingImageWidth / 1280.0f * 720.0f);
+                    var encoded = scaled.EncodeJpeg(90, DeliveryPolicy.LatestMessage).Out;
+                    encoded.Do(helper.SendImage);
+                }
+                else if (!AudioOnly && cameraType == "foscam_wifi")
+                {
+                    var serverUriPSIb = new Uri("rtsp://foscamr4sa.wifi.local.cmu.edu:88/videoMain");
                     var credentialsPSIb = new NetworkCredential("admin5416", "5416FoscamA");
                     RtspCapture rtspPSIb = new RtspCapture(pipeline, serverUriPSIb, credentialsPSIb, true);
 
