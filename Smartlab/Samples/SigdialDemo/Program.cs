@@ -27,6 +27,7 @@
 
         private const string TopicToBazaar = "PSI_Bazaar_Text";
         private const string TopicToPython = "PSI_Python_Image";
+        private const string TopicToMacaw = "PSI_Macaw_Text";
         private const string TopicToNVBG = "PSI_NVBG_Location";
         private const string TopicToVHText = "PSI_VHT_Text";
         private const string TopicFromPython = "Python_PSI_Location";
@@ -422,7 +423,7 @@
         {
             if (s != null)
             {
-                Console.WriteLine($"Send location message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
+                Console.WriteLine($">>> Send MULTIMODAL message to VHT: multimodal:false;%;identity:someone;%;text:{s}");
                 manager.SendText(TopicToVHText, s);
             }
         }
@@ -695,6 +696,7 @@
                         }*/
                         
                         manager.SendText(TopicToBazaar, messageToBazaar);
+                        manager.SendText(TopicToMacaw, result.Text);
                         return;
                     }
                 }
@@ -703,6 +705,7 @@
                     String messageToBazaar = $"multimodal:true;%;identity:{IdInfoList.Last().TrueIdentity};%;speech:{result.Text}";
                     Console.WriteLine($"Send text message to Bazaar: {messageToBazaar}");
                     manager.SendText(TopicToBazaar, messageToBazaar);
+                    manager.SendText(TopicToMacaw, result.Text);
                     // netmqpublisher = new NetMqPublisher(TcpIPPublisher);
                     // netmqpublisher.Publish("TcpToBazaar", messageToBazaar);
                     /*using (var pubSocket = new PublisherSocket())
@@ -730,6 +733,7 @@
                     }*/
                     Console.WriteLine($"Please open the Realmodal first!.Send fake text message to Bazaar: {messageToBazaar}");
                     manager.SendText(TopicToBazaar, messageToBazaar);
+                    manager.SendText(TopicToMacaw, result.Text);
                 }
             }
         }
